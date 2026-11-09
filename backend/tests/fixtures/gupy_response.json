@@ -1,0 +1,51 @@
+{
+  "data": [
+    {
+      "id": 2001,
+      "name": " Desenvolvedor Full Stack Pleno | .NET e React ",
+      "applicationDeadline": "2027-01-08T00:00:00.000Z",
+      "description": "Sobre a vaga\n\nVocê vai trabalhar com C# &amp; React.\n- APIs REST",
+      "careerPageName": "Empresa Exemplo",
+      "careerPageLogo": "https://example.com/logo.png",
+      "careerPageUrl": "",
+      "type": "vacancy_type_effective",
+      "publishedDate": "2026-11-09T13:06:48.690Z",
+      "workplaceType": "remote",
+      "city": "",
+      "state": "",
+      "jobUrl": "https://exemplo.gupy.io/job/abc?jobBoardSource=gupy_portal",
+      "badges": {"friendlyBadge": true},
+      "disabilities": true
+    },
+    {
+      "id": 2002,
+      "name": "Analista de Sistemas Sr.",
+      "description": "Vaga híbrida",
+      "careerPageName": "Outra Empresa",
+      "type": "vacancy_legal_entity",
+      "publishedDate": "2026-11-06T20:37:59.310Z",
+      "workplaceType": "hybrid",
+      "city": "Jundiaí",
+      "state": "São Paulo",
+      "jobUrl": "https://outra.gupy.io/job/def"
+    },
+    {
+      "id": 2003,
+      "name": "Dev com modalidade nova",
+      "description": "Texto",
+      "careerPageName": "Terceira",
+      "publishedDate": null,
+      "workplaceType": "flex",
+      "city": null,
+      "state": "Alagoas",
+      "jobUrl": "https://terceira.gupy.io/job/ghi"
+    },
+    {
+      "id": 2004,
+      "description": "Sem nome e sem empresa: deve ser ignorada",
+      "workplaceType": "remote",
+      "jobUrl": "https://quebrada.gupy.io/job/jkl"
+    }
+  ],
+  "pagination": {"total": 4, "limit": 100, "offset": 0}
+}

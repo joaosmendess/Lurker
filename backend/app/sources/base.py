@@ -1,6 +1,7 @@
 """Common contract and helpers shared by every job source."""
 
 from collections.abc import Callable
+from datetime import UTC, datetime
 from html.parser import HTMLParser
 
 import httpx
@@ -13,6 +14,15 @@ REQUEST_TIMEOUT_SECONDS: float = 30.0
 # returns normalized jobs. Errors (network, HTTP status, format change) are
 # raised; collect.py catches them so one source never breaks the whole run.
 type JobSource = Callable[[httpx.Client], list[Job]]
+
+
+def as_utc(value: datetime | None) -> datetime | None:
+    """Normalize a datetime to UTC. Dates without timezone are assumed to be UTC."""
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 class _TextExtractor(HTMLParser):

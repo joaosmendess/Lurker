@@ -4,14 +4,14 @@ Terms: at most ~4 requests/day and always link back to the Remotive URL.
 """
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 import httpx
 from pydantic import BaseModel, ValidationError
 
 from app.models import Job
-from app.sources.base import REQUEST_TIMEOUT_SECONDS, html_to_text
+from app.sources.base import REQUEST_TIMEOUT_SECONDS, as_utc, html_to_text
 
 SOURCE_NAME = "remotive"
 REMOTIVE_URL = "https://remotive.com/api/remote-jobs"
@@ -74,12 +74,6 @@ def to_job(remotive_job: RemotiveJob) -> Job:
         location=remotive_job.candidate_required_location or None,
         remote=True,  # Remotive only lists remote jobs
         description=html_to_text(remotive_job.description),
+        # Remotive sends dates without timezone; as_utc treats them as UTC
         published_at=as_utc(remotive_job.publication_date),
     )
-
-
-def as_utc(value: datetime) -> datetime:
-    """Remotive sends dates without timezone; we treat them as UTC."""
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)

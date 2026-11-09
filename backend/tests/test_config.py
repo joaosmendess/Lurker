@@ -22,6 +22,16 @@ def test_env_vars_override_defaults_and_are_converted(monkeypatch: pytest.Monkey
     assert settings.claude_model == "some-model"
 
 
+def test_gupy_search_terms_accept_comma_separated_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GUPY_SEARCH_TERMS", "desenvolvedor, full stack ,, backend")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.gupy_search_terms == ["desenvolvedor", "full stack", "backend"]
+
+
 def test_secrets_are_hidden_in_repr(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-super-secret")
 

@@ -143,10 +143,14 @@ Toda fonte segue o mesmo contrato (`sources/base.py`): uma função que retorna
 
 Endpoints:
 - **Remotive:** `https://remotive.com/api/remote-jobs?category=software-dev`
-  (API pública e documentada).
-- **Gupy:** `https://portal.api.gupy.io/api/job?name=<termo>&offset=0&limit=100`
-  (endpoint usado pelo portal, **não é API oficial**; trate mudanças de formato
-  com cuidado). `workplaceType` indica remoto.
+  (API pública e documentada; ignora o filtro de categoria, poucas vagas,
+  máx. ~4 requisições/dia).
+- **Gupy:** `https://portal.gupy.io/api/job-search/jobs?jobName=<termo>&offset=0&limit=100`
+  (endpoint usado pelo portal, **não é API oficial**; o antigo
+  `portal.api.gupy.io` foi desativado em out/2026; trate mudanças de formato
+  com cuidado). `workplaceType` indica remoto (`remote`/`hybrid`/`on-site`).
+  `pagination.total` não é confiável: pagine até vir página incompleta.
+  Termos de busca em `GUPY_SEARCH_TERMS`.
 - **Greenhouse:** `https://boards-api.greenhouse.io/v1/boards/<slug>/jobs?content=true`
 - **Lever:** `https://api.lever.co/v0/postings/<slug>?mode=json`
 
@@ -196,6 +200,7 @@ GMAIL_APP_PASSWORD=
 EMAIL_TO=
 COLLECT_CRON=0 7 * * 1-5
 TIMEZONE=America/Maceio
+GUPY_SEARCH_TERMS=desenvolvedor,developer,programador,engenheiro de software,full stack,backend
 ```
 
 Toda configuração passa por `app/config.py` (pydantic-settings). Nada de
@@ -270,7 +275,7 @@ Atualize os checkboxes ao concluir cada item.
 - [x] Config (pydantic-settings) e banco (SQLModel + SQLite)
 - [x] Modelo `Job`
 - [x] Fonte Remotive
-- [ ] Fonte Gupy
+- [x] Fonte Gupy
 - [ ] `collect.py` salvando sem duplicar
 - [ ] Testes das fontes
 

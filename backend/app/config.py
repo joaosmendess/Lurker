@@ -2,9 +2,10 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated, Any
 
-from pydantic import SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import SecretStr, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 # backend/ folder. Anchoring the .env path here makes it work no matter
 # which directory the process was started from.
@@ -36,6 +37,24 @@ class Settings(BaseSettings):
 
     collect_cron: str = "0 7 * * 1-5"
     timezone: str = "America/Maceio"
+
+    # NoDecode: don't expect JSON in the env var; split_comma_separated parses it
+    gupy_search_terms: Annotated[list[str], NoDecode] = [
+        "desenvolvedor",
+        "developer",
+        "programador",
+        "engenheiro de software",
+        "full stack",
+        "backend",
+    ]
+
+    @field_validator("gupy_search_terms", mode="before")
+    @classmethod
+    def split_comma_separated(cls, value: Any) -> Any:
+        """Accept "a, b,c" in .env and turn it into ["a", "b", "c"]."""
+        if isinstance(value, str):
+            return [term.strip() for term in value.split(",") if term.strip()]
+        return value
 
 
 # Decorator: wraps the function so the first result is cached and reused.
