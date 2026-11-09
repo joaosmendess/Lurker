@@ -173,8 +173,9 @@ Endpoints:
 - **Não filtrar por stack.** Quero vagas de qualquer stack; a IA avalia o fit
   pela minha experiência geral, senioridade, modalidade e requisitos.
 - O pré-filtro (`filters.py`) roda **antes** da IA para economizar: descarta
-  por título (estágio, júnior, staff, principal etc.) e por modalidade
-  conforme o Profile.
+  por título usando `Profile.excluded_title_words` (estágio, staff, principal,
+  gerente etc.; júnior e sênior **não** são descartados, a IA avalia) e por
+  modalidade conforme o Profile.
 - A IA deve penalizar: presencial/híbrido fora das cidades aceitas, senioridade
   muito acima, inglês fluente/nativo obrigatório, requisitos centrais ausentes.
 - Resposta **somente em JSON** validado com Pydantic. Se o JSON vier inválido,
@@ -227,6 +228,10 @@ python -m app.collect
 python -m app.companies list
 python -m app.companies add greenhouse <slug> "<Nome>"
 python -m app.companies remove greenhouse <slug>
+
+# perfil (currículo + preferências): edite profile.toml (git-ignored) e importe
+python -m app.profile import
+python -m app.profile show
 
 # subir a API (docs em http://localhost:8000/docs)
 uvicorn app.main:app --reload
@@ -286,7 +291,7 @@ Atualize os checkboxes ao concluir cada item.
 
 ### Fase 2 — Mais fontes e IA
 - [x] Fontes Greenhouse e Lever + `WatchedCompany`
-- [ ] `Profile` com currículo e preferências
+- [x] `Profile` com currículo e preferências
 - [ ] Pré-filtro
 - [ ] Pontuação com Claude + `JobAnalysis`
 

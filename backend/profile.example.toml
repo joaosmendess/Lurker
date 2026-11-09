@@ -1,0 +1,26 @@
+# Copy to profile.toml (git-ignored), fill it in and run:
+#   python -m app.profile import
+
+# Plain text. Contact details (phone, e-mail) are not needed: the AI only
+# evaluates fit, and this text is sent to the Claude API.
+resume = """
+Full-stack software engineer with N years of experience...
+"""
+
+# "remote", "hybrid" and/or "onsite"
+work_modes = ["remote"]
+
+# Cities accepted for hybrid/onsite jobs
+accepted_cities = []
+
+# Seniority levels I'm applying for
+seniority_levels = ["pleno"]
+
+# "clt" and/or "pj"
+contract_types = ["clt", "pj"]
+
+# Free text, read by the AI
+salary_expectation = ""
+
+# Jobs whose title contains any of these words are dropped before the AI
+excluded_title_words = ["estágio", "intern", "staff", "principal"]
