@@ -131,6 +131,40 @@ def test_detail_not_found(client: TestClient) -> None:
     assert response.json() == {"detail": "Job not found"}
 
 
+def test_jobs_carry_their_application_status(client: TestClient) -> None:
+    client.post("/applications", json={"job_id": "gupy:1", "status": "discarded"})
+
+    items = {item["id"]: item for item in client.get("/jobs").json()["items"]}
+    detail = client.get("/jobs/gupy:1").json()
+
+    assert items["gupy:1"]["application_status"] == "discarded"
+    assert items["gupy:1"]["application_id"] is not None
+    assert items["gupy:2"]["application_status"] is None
+    assert detail["application_status"] == "discarded"
+
+
+def test_untriaged_hides_jobs_with_an_application(client: TestClient, engine: Engine) -> None:
+    add_profile(engine)
+    client.post("/applications", json={"job_id": "gupy:1"})
+
+    body = client.get("/jobs", params={"untriaged": "true", "prefiltered": "true"}).json()
+
+    # gupy:1 now has an application; gupy:2 and gupy:3 are dropped by the pre-filter
+    assert [item["id"] for item in body["items"]] == ["remotive:1"]
+    assert body["total"] == 1
+
+
+def test_deleting_the_application_makes_the_job_untriaged_again(client: TestClient) -> None:
+    application = client.post("/applications", json={"job_id": "gupy:1"}).json()
+
+    response = client.delete(f"/applications/{application['id']}")
+
+    assert response.status_code == 204
+    untriaged = client.get("/jobs", params={"untriaged": "true"}).json()
+    assert "gupy:1" in [item["id"] for item in untriaged["items"]]
+    assert client.get(f"/applications/{application['id']}").status_code == 404
+
+
 def test_cors_allows_only_the_local_frontend(client: TestClient) -> None:
     preflight = {"Access-Control-Request-Method": "GET"}
 

@@ -6,6 +6,7 @@ are spaced out. We only read public listings; applying is always done by hand.
 """
 
 import logging
+import re
 import time
 from datetime import datetime
 from typing import Any
@@ -16,7 +17,7 @@ from pydantic.alias_generators import to_camel
 
 from app.config import get_settings
 from app.models import Job
-from app.sources.base import REQUEST_TIMEOUT_SECONDS, as_utc, html_to_text
+from app.sources.base import REQUEST_TIMEOUT_SECONDS, as_utc, html_to_text, tidy_lines
 
 SOURCE_NAME = "gupy"
 GUPY_URL = "https://portal.gupy.io/api/job-search/jobs"
@@ -120,9 +121,54 @@ def to_job(gupy_job: GupyJob) -> Job:
         location=build_location(gupy_job.city, gupy_job.state),
         remote=REMOTE_BY_WORKPLACE_TYPE.get(gupy_job.workplace_type or ""),
         # Gupy already sends plain text; cleaning anyway guards against HTML showing up
-        description=html_to_text(gupy_job.description),
+        description=tidy_gupy_description(html_to_text(gupy_job.description)),
         published_at=as_utc(gupy_job.published_date),
     )
+
+
+# Gupy's standard section titles. Its API glues them to the text around them:
+# "...gente.Responsabilidades e atribuiçõesDesenvolver APIs.Atuar com..."
+SECTION_HEADINGS: tuple[str, ...] = (
+    "Responsabilidades e atribuições",
+    "Requisitos e qualificações",
+    "Informações adicionais",
+)
+# In these sections every line is one item, so they become "- " lists
+LIST_SECTIONS: frozenset[str] = frozenset(SECTION_HEADINGS[:2])
+
+# A sentence end glued to the next one: "segurança.Definir", "global.Ao se".
+# The next word must be Capitalized with 2+ lowercase letters, or a short
+# Portuguese word ("Ao", "Os", "É"...). That leaves tech names like "Vue.Js",
+# "Node.JS" or "ASP.NET" alone.
+SHORT_WORDS = "Ao|Aos|As|Os|Em|No|Na|Nos|Nas|Se|Um|Uma|É|O|A|E"
+GLUED_SENTENCE = re.compile(
+    rf"(?<=[a-zà-ÿ0-9)])([.!?;])(?=[A-ZÀ-Ý][a-zà-ÿ]{{2,}}|(?:{SHORT_WORDS})\b)"
+)
+# A ";" glued to the next item, common in benefit lists: "refeição;👨‍🎓 Desconto"
+GLUED_SEMICOLON = re.compile(r";(?=\S)")
+
+
+def tidy_gupy_description(text: str) -> str:
+    """Restore the structure Gupy's API flattens: headings, sentences and list items.
+
+    Idempotent, so it can be re-applied to descriptions already in the database.
+    """
+    for heading in SECTION_HEADINGS:
+        # Put each section title on its own line (keeping the previous sentence's period)
+        text = re.sub(rf"\s*{re.escape(heading)}:?\s*", f"\n{heading}\n", text)
+    text = GLUED_SENTENCE.sub(r"\1\n", text)
+    text = GLUED_SEMICOLON.sub(";\n", text)
+    text = tidy_lines(text)
+
+    lines: list[str] = []
+    in_list_section = False
+    for line in text.splitlines():
+        if line in SECTION_HEADINGS:
+            in_list_section = line in LIST_SECTIONS
+        elif in_list_section and not line.startswith("- "):
+            line = f"- {line}"
+        lines.append(line)
+    return "\n".join(lines)
 
 
 def build_location(city: str | None, state: str | None) -> str | None:

@@ -1,5 +1,13 @@
 // Thin typed wrapper around fetch for the Lurker API.
 
+import type {
+  ApplicationRead,
+  ApplicationStatus,
+  CollectStatus,
+  JobDetail,
+  JobPage,
+} from './types'
+
 const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 /** An HTTP error from the API, with the status and FastAPI's "detail" message. */
@@ -37,10 +45,61 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   return (response.status === 204 ? undefined : await response.json()) as T
 }
 
-export interface HealthResponse {
-  status: 'ok'
+// --- Jobs ----------------------------------------------------------------------
+
+export interface JobFilters {
+  untriaged?: boolean
+  prefiltered?: boolean
+  q?: string
+  source?: string
+  remote?: boolean
 }
 
-export function getHealth(signal?: AbortSignal): Promise<HealthResponse> {
-  return apiRequest<HealthResponse>('/health', { signal })
+function toSearchParams(filters: JobFilters, limit: number, offset: number): string {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  if (filters.untriaged) params.set('untriaged', 'true')
+  if (filters.prefiltered) params.set('prefiltered', 'true')
+  if (filters.q) params.set('q', filters.q)
+  if (filters.source) params.set('source', filters.source)
+  if (filters.remote !== undefined) params.set('remote', String(filters.remote))
+  return params.toString()
+}
+
+export function listJobs(
+  filters: JobFilters,
+  limit: number,
+  offset: number,
+  signal?: AbortSignal,
+): Promise<JobPage> {
+  return apiRequest<JobPage>(`/jobs?${toSearchParams(filters, limit, offset)}`, { signal })
+}
+
+export function getJob(id: string, signal?: AbortSignal): Promise<JobDetail> {
+  return apiRequest<JobDetail>(`/jobs/${encodeURIComponent(id)}`, { signal })
+}
+
+// --- Applications ----------------------------------------------------------------
+
+export function createApplication(
+  jobId: string,
+  status: ApplicationStatus,
+): Promise<ApplicationRead> {
+  return apiRequest<ApplicationRead>('/applications', {
+    method: 'POST',
+    body: JSON.stringify({ job_id: jobId, status }),
+  })
+}
+
+export function deleteApplication(id: number): Promise<void> {
+  return apiRequest<void>(`/applications/${id}`, { method: 'DELETE' })
+}
+
+// --- Collection ------------------------------------------------------------------
+
+export function getCollectStatus(signal?: AbortSignal): Promise<CollectStatus> {
+  return apiRequest<CollectStatus>('/collect', { signal })
+}
+
+export function startCollection(): Promise<CollectStatus> {
+  return apiRequest<CollectStatus>('/collect', { method: 'POST' })
 }

@@ -26,6 +26,9 @@ class JobSummary(BaseModel):
     published_at: datetime | None
     collected_at: datetime
     description_preview: str
+    # The application for this job, if I already triaged it (None = not triaged yet)
+    application_id: int | None = None
+    application_status: ApplicationStatus | None = None
 
 
 class JobDetail(JobSummary):
@@ -63,17 +66,23 @@ def column_values(row: SQLModel) -> dict[str, Any]:
     return {name: getattr(row, name) for name in type(row).model_fields}
 
 
-def to_summary(job: Job) -> JobSummary:
+def job_values(job: Job, application: Application | None) -> dict[str, Any]:
+    """Job columns plus the computed fields shared by JobSummary and JobDetail."""
+    return {
+        **column_values(job),
+        "description_preview": make_preview(job.description),
+        "application_id": application.id if application else None,
+        "application_status": application.status if application else None,
+    }
+
+
+def to_summary(job: Job, application: Application | None = None) -> JobSummary:
     # Fields JobSummary doesn't declare (the full description) are ignored by Pydantic
-    return JobSummary.model_validate(
-        {**column_values(job), "description_preview": make_preview(job.description)}
-    )
+    return JobSummary.model_validate(job_values(job, application))
 
 
-def to_detail(job: Job) -> JobDetail:
-    return JobDetail.model_validate(
-        {**column_values(job), "description_preview": make_preview(job.description)}
-    )
+def to_detail(job: Job, application: Application | None = None) -> JobDetail:
+    return JobDetail.model_validate(job_values(job, application))
 
 
 # --- Applications -------------------------------------------------------------
@@ -118,7 +127,9 @@ class ApplicationDetail(ApplicationRead):
 
 
 def to_application_read(application: Application, job: Job) -> ApplicationRead:
-    return ApplicationRead.model_validate({**column_values(application), "job": to_summary(job)})
+    return ApplicationRead.model_validate(
+        {**column_values(application), "job": to_summary(job, application)}
+    )
 
 
 def to_application_detail(
@@ -127,7 +138,7 @@ def to_application_detail(
     return ApplicationDetail.model_validate(
         {
             **column_values(application),
-            "job": to_summary(job),
+            "job": to_summary(job, application),
             "history": [column_values(change) for change in history],
         }
     )

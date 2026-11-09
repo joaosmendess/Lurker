@@ -2,8 +2,8 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import Session, col, select
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlmodel import Session, col, delete, select
 
 from app.db import get_session
 from app.models import Application, ApplicationStatus, Job, StatusChange, utc_now
@@ -114,6 +114,20 @@ def move_application(
         session.refresh(application)
 
     return to_application_read(application, get_job(session, application))
+
+
+@router.delete("/{application_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_application(application_id: int, session: SessionDep) -> Response:
+    """Undo a triage: the job goes back to "not triaged", as if never touched.
+
+    The history goes too, since it belongs to the application being removed.
+    """
+    application = get_application_or_404(session, application_id)
+    # Bulk DELETE in one statement, like ExecuteDelete() in EF Core
+    session.exec(delete(StatusChange).where(col(StatusChange.application_id) == application_id))
+    session.delete(application)
+    session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.patch("/{application_id}", response_model=ApplicationRead)

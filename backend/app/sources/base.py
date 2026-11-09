@@ -1,5 +1,6 @@
 """Common contract and helpers shared by every job source."""
 
+import re
 from collections.abc import Callable
 from datetime import UTC, datetime
 from html.parser import HTMLParser
@@ -73,12 +74,27 @@ def html_to_text(html: str) -> str:
     parser = _TextExtractor()
     parser.feed(html)
     parser.close()
+    return tidy_lines(parser.text())
 
+
+# Bullet characters typed inside the text instead of real <li> items ("…mobile; • Kotlin")
+INLINE_BULLET = re.compile(r"\s*[•●▪◦]\s*")
+# Bullet-like markers at the start of a line ("· Helpdesk", "* Python")
+LINE_START_BULLET = re.compile(r"^[·*]\s+")
+
+
+def tidy_lines(text: str) -> str:
+    """Normalize plain text: one item per line as "- item", no blank or empty lines.
+
+    Idempotent: running it again on its own output changes nothing, so it's safe
+    to re-apply to descriptions already stored in the database.
+    """
+    text = INLINE_BULLET.sub("\n- ", text)
     clean_lines: list[str] = []
-    for line in parser.text().splitlines():
+    for line in text.splitlines():
         # split() with no args splits on any whitespace run, so this collapses
         # tabs, non-breaking spaces and repeated spaces into single spaces
-        normalized = " ".join(line.split())
-        if normalized:
+        normalized = LINE_START_BULLET.sub("- ", " ".join(line.split()))
+        if normalized and normalized != "-":  # drop blank lines and lone bullets
             clean_lines.append(normalized)
     return "\n".join(clean_lines)
