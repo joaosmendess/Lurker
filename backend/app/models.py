@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime
 
+from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
@@ -28,3 +29,18 @@ class Job(SQLModel, table=True):
     # default_factory runs on every new instance; a plain default would be
     # evaluated only once, when the class is defined
     collected_at: datetime = Field(default_factory=utc_now)
+
+
+class WatchedCompany(SQLModel, table=True):
+    """A company whose public job board (Greenhouse or Lever) we monitor."""
+
+    # Class attribute read by SQLAlchemy: a company can't be added twice per provider
+    __table_args__ = (UniqueConstraint("provider", "slug"),)
+
+    # None until the database assigns it (autoincrement), like an int? Id in EF
+    id: int | None = Field(default=None, primary_key=True)
+    provider: str  # "greenhouse" or "lever"
+    slug: str  # board name in the URL, e.g. "gitlab"
+    name: str  # display name; Lever's API doesn't return it
+    active: bool = True
+    created_at: datetime = Field(default_factory=utc_now)

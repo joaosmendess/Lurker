@@ -4,23 +4,34 @@ CLI: python -m app.collect
 """
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from functools import partial
 
 import httpx
 from sqlmodel import Session, col, select
 
 from app.db import engine, init_db
-from app.models import Job
+from app.models import Job, WatchedCompany
 from app.sources.base import JobSource
+from app.sources.greenhouse import fetch_greenhouse_jobs
 from app.sources.gupy import fetch_gupy_jobs
+from app.sources.lever import fetch_lever_jobs
 from app.sources.remotive import fetch_remotive_jobs
 
 logger = logging.getLogger(__name__)
 
-# Registry of sources. Adding a source = writing its module + one line here.
-SOURCES: dict[str, JobSource] = {
+# Sources that don't depend on configuration. Adding one = its module + one line here.
+STATIC_SOURCES: dict[str, JobSource] = {
     "remotive": fetch_remotive_jobs,
     "gupy": fetch_gupy_jobs,
+}
+
+# Per-company fetchers: they need slug and company_name besides the client.
+type CompanyFetcher = Callable[..., list[Job]]
+COMPANY_FETCHERS: dict[str, CompanyFetcher] = {
+    "greenhouse": fetch_greenhouse_jobs,
+    "lever": fetch_lever_jobs,
 }
 
 USER_AGENT = "lurker/0.1 (personal job search tool)"
@@ -34,6 +45,30 @@ class CollectResult:
     saved: int = 0
     # default_factory again: each result gets its own list (never "= []")
     failed_sources: list[str] = field(default_factory=list)
+
+
+def build_sources(session: Session) -> dict[str, JobSource]:
+    """Static sources plus one source per active watched company.
+
+    Each company is its own source ("greenhouse:gitlab"), so a wrong slug only
+    fails that company, and the summary says exactly which one.
+    """
+    sources: dict[str, JobSource] = dict(STATIC_SOURCES)  # copy: never mutate the module dict
+
+    companies = session.exec(select(WatchedCompany).where(col(WatchedCompany.active).is_(True)))
+    for company in companies:
+        fetcher = COMPANY_FETCHERS.get(company.provider)
+        if fetcher is None:
+            logger.warning(
+                "Unknown provider %r for company %s; skipping", company.provider, company.slug
+            )
+            continue
+        # partial pre-fills slug and company_name, leaving a function that only
+        # needs the client: exactly the JobSource contract.
+        sources[f"{company.provider}:{company.slug}"] = partial(
+            fetcher, slug=company.slug, company_name=company.name
+        )
+    return sources
 
 
 def run_sources(client: httpx.Client, sources: dict[str, JobSource]) -> tuple[list[Job], list[str]]:
@@ -94,7 +129,7 @@ def main() -> None:
         httpx.Client(headers={"User-Agent": USER_AGENT}) as client,
         Session(engine) as session,
     ):
-        result = collect(session, client, SOURCES)
+        result = collect(session, client, build_sources(session))
 
     logger.info(
         "Done: %d fetched, %d new saved, failed sources: %s",

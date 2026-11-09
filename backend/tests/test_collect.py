@@ -4,9 +4,10 @@ import httpx
 import pytest
 from sqlmodel import Session, select
 
-from app.collect import collect, save_new_jobs
+from app import collect as collect_module
+from app.collect import STATIC_SOURCES, build_sources, collect, save_new_jobs
 from app.db import build_engine, init_db
-from app.models import Job
+from app.models import Job, WatchedCompany
 from app.sources.base import JobSource
 
 
@@ -74,6 +75,43 @@ def test_existing_jobs_are_not_overwritten(session: Session) -> None:
     stored = session.get(Job, "ok:1")
     assert stored is not None
     assert stored.title == "Original"
+
+
+def test_build_sources_adds_one_source_per_active_company(
+    session: Session, client: httpx.Client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[tuple[str, str]] = []
+
+    def fake_fetcher(client: httpx.Client, *, slug: str, company_name: str) -> list[Job]:
+        calls.append((slug, company_name))
+        return []
+
+    monkeypatch.setattr(collect_module, "COMPANY_FETCHERS", {"greenhouse": fake_fetcher})
+    session.add(WatchedCompany(provider="greenhouse", slug="acme", name="Acme"))
+    session.add(WatchedCompany(provider="greenhouse", slug="globex", name="Globex"))
+    session.add(WatchedCompany(provider="greenhouse", slug="paused", name="Paused", active=False))
+    session.add(WatchedCompany(provider="workday", slug="unknown", name="Unknown provider"))
+    session.commit()
+
+    sources = build_sources(session)
+
+    company_sources = [name for name in sources if name not in STATIC_SOURCES]
+    assert company_sources == ["greenhouse:acme", "greenhouse:globex"]
+    assert set(STATIC_SOURCES) <= set(sources)  # "<=" on sets means "is subset of"
+
+    # Each source carries its own slug (the classic loop-closure bug would repeat "globex")
+    sources["greenhouse:acme"](client)
+    sources["greenhouse:globex"](client)
+    assert calls == [("acme", "Acme"), ("globex", "Globex")]
+
+
+def test_build_sources_does_not_mutate_static_sources(session: Session) -> None:
+    session.add(WatchedCompany(provider="lever", slug="acme", name="Acme"))
+    session.commit()
+
+    build_sources(session)
+
+    assert "lever:acme" not in STATIC_SOURCES
 
 
 def test_same_id_twice_in_one_batch_is_saved_once(session: Session) -> None:

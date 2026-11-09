@@ -1,0 +1,38 @@
+[
+  {
+    "additionalPlain": "We offer remote work.",
+    "additional": "<div>We offer remote work.</div>",
+    "categories": {
+      "commitment": "Full-time",
+      "location": "Brazil",
+      "team": "Engineering",
+      "allLocations": ["Brazil"]
+    },
+    "createdAt": 1786469891368,
+    "descriptionPlain": "About us",
+    "description": "<div><strong>About us</strong></div><div>&nbsp;</div>",
+    "id": "6ed76ce8-4156-4b60-b120-403538bd66cd",
+    "lists": [
+      {
+        "text": "Requirements <must-have>",
+        "content": "\n<li>5+ years with C#</li>\n<li>SQL Server</li>\n"
+      }
+    ],
+    "text": " Full Stack Developer ",
+    "country": "BR",
+    "workplaceType": "remote",
+    "hostedUrl": "https://jobs.lever.co/acme/6ed76ce8-4156-4b60-b120-403538bd66cd",
+    "applyUrl": "https://jobs.lever.co/acme/6ed76ce8-4156-4b60-b120-403538bd66cd/apply"
+  },
+  {
+    "categories": {"location": "New York, NY"},
+    "id": "aaaa-bbbb",
+    "text": "Onsite Engineer",
+    "workplaceType": "onsite",
+    "hostedUrl": "https://jobs.lever.co/acme/aaaa-bbbb"
+  },
+  {
+    "id": "no-title-on-purpose",
+    "hostedUrl": "https://jobs.lever.co/acme/no-title"
+  }
+]

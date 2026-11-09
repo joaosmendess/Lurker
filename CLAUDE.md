@@ -223,6 +223,11 @@ pip install -r requirements.txt
 # coletar vagas manualmente
 python -m app.collect
 
+# empresas monitoradas (Greenhouse/Lever)
+python -m app.companies list
+python -m app.companies add greenhouse <slug> "<Nome>"
+python -m app.companies remove greenhouse <slug>
+
 # subir a API (docs em http://localhost:8000/docs)
 uvicorn app.main:app --reload
 
@@ -280,7 +285,7 @@ Atualize os checkboxes ao concluir cada item.
 - [x] Testes das fontes
 
 ### Fase 2 — Mais fontes e IA
-- [ ] Fontes Greenhouse e Lever + `WatchedCompany`
+- [x] Fontes Greenhouse e Lever + `WatchedCompany`
 - [ ] `Profile` com currículo e preferências
 - [ ] Pré-filtro
 - [ ] Pontuação com Claude + `JobAnalysis`
