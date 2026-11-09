@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router'
 import { ThemeSwitch } from '../components/ThemeSwitch'
 import { TRIAGE_FILTERS, useJobCount } from '../lib/queries'
 import { CollectPanel } from './CollectPanel'
+import { ScoringPanel } from './ScoringPanel'
 
 const NAV_ITEMS = [
   { to: '/vagas', label: 'Vagas' },
@@ -49,6 +50,7 @@ export function AppShell() {
           </nav>
         </div>
         <div className="space-y-5">
+          <ScoringPanel />
           <CollectPanel />
           <ThemeSwitch />
         </div>

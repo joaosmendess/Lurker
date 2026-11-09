@@ -23,10 +23,37 @@ export interface JobSummary {
   tags: string[]
   application_id: number | null
   application_status: ApplicationStatus | null
+  /** AI fit score 0-100; null = not analyzed yet */
+  score: number | null
+}
+
+export interface JobAnalysis {
+  score: number
+  summary: string
+  matches: string[]
+  gaps: string[]
+  red_flags: string[]
+  pitch: string
+  /** Numbers/terms in the pitch that the resume doesn't have; empty = all good */
+  pitch_warnings: string[]
+  model: string
+  analyzed_at: string
 }
 
 export interface JobDetail extends JobSummary {
   description: string
+  analysis: JobAnalysis | null
+}
+
+export interface ScoringStatus {
+  running: boolean
+  analyzed: number
+  pending: number
+  batch_total: number
+  batch_done: number
+  batch_failed: number
+  waiting_until: string | null
+  stopped_reason: string | null
 }
 
 export interface JobPage {
@@ -79,6 +106,26 @@ export interface StatusChange {
 
 export interface ApplicationDetail extends ApplicationRead {
   history: StatusChange[]
+}
+
+export interface TailoredResume {
+  job_id: string
+  content: string
+  /** What the AI says it adjusted */
+  changes: string[]
+  /** Job requirements the resume doesn't show (not added to it) */
+  missing: string[]
+  /** What the automatic check found changed or invented; empty = all good */
+  warnings: string[]
+  model: string
+  created_at: string
+}
+
+export interface LLMStatus {
+  configured: boolean
+  has_key: boolean
+  model: string
+  base_url: string
 }
 
 export type CompanyProvider = 'greenhouse' | 'lever'

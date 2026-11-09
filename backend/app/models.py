@@ -137,3 +137,36 @@ class StatusChange(SQLModel, table=True):
     from_status: str | None = None
     to_status: str
     changed_at: datetime = Field(default_factory=utc_now)
+
+
+class JobAnalysis(SQLModel, table=True):
+    """How well a job fits my resume, according to the text AI (1:1 with Job)."""
+
+    job_id: str = Field(foreign_key="job.id", primary_key=True)
+    score: int = Field(index=True)  # 0-100; indexed: the triage list is sorted by it
+    summary: str
+    matches: list[str] = Field(default_factory=list, sa_column=json_list_column())
+    gaps: list[str] = Field(default_factory=list, sa_column=json_list_column())
+    red_flags: list[str] = Field(default_factory=list, sa_column=json_list_column())
+    pitch: str
+    # Numbers/terms in the pitch that my resume doesn't have (empty = all good)
+    pitch_warnings: list[str] = Field(default_factory=list, sa_column=json_list_column())
+    model: str
+    analyzed_at: datetime = Field(default_factory=utc_now)
+
+
+class TailoredResume(SQLModel, table=True):
+    """My resume rewritten by the AI for one job (latest version only, 1:1 with Job).
+
+    Saved so reopening the job doesn't spend the provider's free quota again.
+    """
+
+    # The job id is the primary key: one tailored resume per job, like a 1:1 in EF
+    job_id: str = Field(foreign_key="job.id", primary_key=True)
+    content: str
+    changes: list[str] = Field(default_factory=list, sa_column=json_list_column())
+    missing: list[str] = Field(default_factory=list, sa_column=json_list_column())
+    # What the automatic check found changed or invented (empty = all good)
+    warnings: list[str] = Field(default_factory=list, sa_column=json_list_column())
+    model: str
+    created_at: datetime = Field(default_factory=utc_now)

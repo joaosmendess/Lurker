@@ -39,6 +39,7 @@ ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("job", "tags", "JSON NOT NULL DEFAULT '[]'"),
     ("profile", "preferred_stack", "JSON NOT NULL DEFAULT '[]'"),
     ("profile", "strict_unknown_work_mode", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("jobanalysis", "pitch_warnings", "JSON NOT NULL DEFAULT '[]'"),
 ]
 
 

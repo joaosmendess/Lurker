@@ -1,13 +1,11 @@
 """Watched company routes (Greenhouse/Lever boards)."""
 
-from collections.abc import Iterator
 from typing import Annotated
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlmodel import Session
 
-from app.collect import USER_AGENT
 from app.companies import (
     BoardNotFoundError,
     CompanyAlreadyWatchedError,
@@ -17,6 +15,7 @@ from app.companies import (
     list_companies,
 )
 from app.db import get_session
+from app.http_client import get_http_client
 from app.models import WatchedCompany
 from app.schemas import (
     CompanyCreate,
@@ -29,12 +28,6 @@ from app.schemas import (
 router = APIRouter(prefix="/companies", tags=["companies"])
 
 SessionDep = Annotated[Session, Depends(get_session)]
-
-
-def get_http_client() -> Iterator[httpx.Client]:
-    """One client per request, closed when the response is sent (the code after yield)."""
-    with httpx.Client(headers={"User-Agent": USER_AGENT}) as client:
-        yield client
 
 
 HttpClientDep = Annotated[httpx.Client, Depends(get_http_client)]

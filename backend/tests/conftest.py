@@ -9,9 +9,9 @@ from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
 from app.db import build_engine, get_session, init_db
+from app.http_client import get_http_client
 from app.main import app
 from app.models import Job
-from app.routers.companies import get_http_client
 
 
 def make_job(job_id: str, title: str = "Desenvolvedor Pleno", **fields: object) -> Job:

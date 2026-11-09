@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 
+import { ScoreStamp } from '../../components/ScoreStamp'
 import { STATUS_LABELS, compactAge, formatDateTime, jobDate, sourceLabel, workModeLabel } from '../../lib/format'
 import type { JobSummary } from '../../lib/types'
 
@@ -8,6 +9,8 @@ interface JobRowProps {
   selected: boolean
   /** Tags chosen in the stack filter: shown first and emphasized */
   highlightedTags: string[]
+  /** Reserve the score column (when any job in the list has a score) */
+  showScore: boolean
   onSelect: (id: string) => void
 }
 
@@ -22,7 +25,7 @@ function rowTags(tags: string[], highlighted: string[]): { shown: string[]; hidd
   return { shown: ordered.slice(0, MAX_ROW_TAGS), hidden: Math.max(ordered.length - MAX_ROW_TAGS, 0) }
 }
 
-export function JobRow({ job, selected, highlightedTags, onSelect }: JobRowProps) {
+export function JobRow({ job, selected, highlightedTags, showScore, onSelect }: JobRowProps) {
   const ref = useRef<HTMLButtonElement>(null)
 
   // Keyboard navigation (J/K) keeps the selected row visible
@@ -44,8 +47,7 @@ export function JobRow({ job, selected, highlightedTags, onSelect }: JobRowProps
           selected ? 'border-signal bg-surface' : 'border-transparent hover:bg-surface'
         }`}
       >
-        {/* The score "stamp" column (docs/ui-research.md) comes back with the AI scoring.
-            A placeholder dash here read like a list bullet, so it's left out until then. */}
+        {showScore && <ScoreStamp score={job.score} />}
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{job.title}</span>
           <span className="block truncate text-sm text-graphite">

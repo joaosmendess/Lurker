@@ -172,8 +172,17 @@ Endpoints:
 
 ## Pontuação com IA (scoring.py)
 
-- Modelo configurável via `.env` (`CLAUDE_MODEL`), padrão `claude-haiku-5-5`
-  (barato e suficiente para essa tarefa).
+- Usa a mesma **IA de texto configurável** do currículo ajustado (`LLM_*` no
+  `.env`; padrão Groq gratuita com `openai/gpt-oss-120b`), não a API do Claude:
+  o usuário não tem chave da Anthropic (decisão de 2026-11-09).
+- Cota gratuita da Groq medida nos cabeçalhos: **1.000 pedidos/dia e 8.000
+  tokens/minuto** por modelo. Por isso: descrição cortada em 4.000 caracteres,
+  `LLM_REASONING_EFFORT=low`, lote em segundo plano que espera o `Retry-After`
+  de cada 429 e para o lote se a espera passar de 90s (cota do dia acabou).
+- Ordem do lote: vagas com stack preferida primeiro, depois as mais novas.
+- O `pitch` passa pela mesma verificação de invenção do currículo ajustado
+  (`check_invented`); o que falhar fica em `pitch_warnings` e aparece na tela.
+- A lista "Para triar" é ordenada pela nota (sem nota vai para o fim, por data).
 - **Não descartar por stack.** Quero vagas de qualquer stack; a IA avalia o fit
   pela minha experiência geral, senioridade, modalidade e requisitos. A stack
   detectada em cada vaga serve só como **filtro de visualização** na UI (eu
@@ -192,6 +201,36 @@ Endpoints:
   para controlar custo.
 - Nunca reanalisar uma vaga que já tem JobAnalysis, salvo pedido explícito.
 
+### Currículo ajustado à vaga (`app/resume.py`)
+- Decisão (2026-11-09): usa uma **IA de texto configurável** (qualquer API
+  compatível com OpenAI: Groq, Gemini, OpenRouter, Mistral, Ollama), não a API do
+  Claude, porque o usuário quer uma opção gratuita. Padrão: **Groq** (plano
+  gratuito, não guarda os dados enviados por padrão; o currículo é dado pessoal).
+  Evitar o plano gratuito do Gemini para currículo: o Google pode usar os dados.
+- A experiência profissional, a formação e os cursos são copiados **exatamente**
+  como estão. A IA só reescreve o resumo, reordena as habilidades e a ordem das
+  seções, e usa os termos da vaga quando forem o que o currículo já diz.
+- Formato para ATS (Gupy, Greenhouse, Lever): texto puro, sem tabelas, colunas ou
+  ícones, títulos de seção padrão em maiúsculas.
+- Resposta em **texto com marcadores** (`===CURRICULO===`, `===AJUSTES===`,
+  `===FALTANDO===`), não no "modo JSON": currículo longo dentro de JSON quebrava
+  no gpt-oss da Groq, e nem todo fornecedor tem esse modo. `max_tokens` explícito,
+  porque modelos que "raciocinam" gastam a cota de saída pensando.
+- Caracteres parecidos (hífen não separável, espaço estreito) viram os comuns
+  antes de salvar: ATS pode não achar "Full‑Stack" numa busca por "Full-Stack".
+- Verificação em código (`check_preserved`), sem confiar no modelo. Vira aviso
+  em destaque na tela:
+  - toda linha do original com um ano (empresas, cargos, formação) volta igual;
+  - nenhum número novo ("5 anos", ".NET 8");
+  - nenhuma linha repetida que não era repetida;
+  - nenhum termo novo com maiúscula ou hífen, inclusive pares de palavras
+    conhecidas ("Cloud Native", "Tech Leads", "QA", "cloud-native");
+  - todo item da seção HABILIDADES continua no texto.
+  Limite conhecido: invenção em minúsculas sem hífen ("equipes ágeis") passa.
+- Requisitos da vaga que o currículo não mostra vão numa lista à parte, **nunca**
+  para dentro do currículo.
+- Uma versão salva por vaga (`TailoredResume`); gerar de novo substitui.
+
 ---
 
 ## Configuração (.env)
@@ -199,6 +238,10 @@ Endpoints:
 ```
 ANTHROPIC_API_KEY=
 CLAUDE_MODEL=claude-haiku-5-5
+LLM_BASE_URL=https://api.groq.com/openai/v1   # IA do currículo ajustado
+LLM_API_KEY=
+LLM_MODEL=                                    # escolha com: python -m app.llm
+LLM_REASONING_EFFORT=low                      # vazio para fornecedores sem "raciocínio"
 DATABASE_URL=sqlite:///lurker.db
 MAX_JOBS_TO_SCORE=60
 MIN_SCORE_TO_EMAIL=65
@@ -232,6 +275,9 @@ pip install -r requirements.txt
 
 # coletar vagas manualmente
 python -m app.collect
+
+# dar nota às vagas pendentes com a IA (ou o botão "Analisar vagas" na tela)
+python -m app.scoring --limit 20
 
 # empresas monitoradas (Greenhouse/Lever): também pela tela "Empresas" do frontend.
 # "add" consulta o board uma vez: slug errado falha na hora, e as vagas já entram.
@@ -325,7 +371,7 @@ Atualize os checkboxes ao concluir cada item.
 - [ ] Fontes internacionais remotas (Remote OK, Himalayas...) — opcional
 - [x] `Profile` com currículo e preferências
 - [x] Pré-filtro
-- [ ] Pontuação com Claude + `JobAnalysis`
+- [x] Pontuação com IA + `JobAnalysis` (IA gratuita configurável, não Claude)
 
 ### Fase 3 — API
 - [x] FastAPI com rotas de vagas (listar, filtrar, detalhar)
@@ -335,9 +381,10 @@ Atualize os checkboxes ao concluir cada item.
 
 ### Fase 4 — UI
 - [x] Setup React + Vite + Tailwind + TanStack Query
-- [ ] Lista de vagas com nota, filtros e ações (interesse/descartar)
-- [ ] Detalhe da vaga com análise e pitch (botão copiar)
+- [x] Lista de vagas com nota, filtros e ações (interesse/descartar)
+- [x] Detalhe da vaga com análise e pitch (botão copiar)
 - [x] Kanban de candidaturas com arrastar e soltar
+- [x] Currículo ajustado à vaga (IA gratuita configurável, sem alterar experiências)
 - [x] Tela de perfil e empresas monitoradas (inclui o "Foco": modalidade,
   cidades, palavras de título e stacks preferidas, editáveis pela UI)
 

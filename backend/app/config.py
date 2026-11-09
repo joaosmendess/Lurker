@@ -26,6 +26,15 @@ class Settings(BaseSettings):
     anthropic_api_key: SecretStr = SecretStr("")
     claude_model: str = "claude-haiku-5-5"
 
+    # Text AI for the job score and the tailored resume: any "OpenAI-compatible" chat
+    # API (Groq, Gemini, OpenRouter, Mistral, Ollama...). Switching provider = these lines.
+    llm_base_url: str = "https://api.groq.com/openai/v1"
+    llm_api_key: SecretStr = SecretStr("")
+    llm_model: str = ""  # each account/provider offers different models: set it in .env
+    # "low"/"medium"/"high" for reasoning models like gpt-oss; empty = not sent.
+    # "low" spends fewer tokens thinking: more jobs fit in the free tokens-per-minute
+    llm_reasoning_effort: str = "low"
+
     database_url: str = "sqlite:///lurker.db"
 
     max_jobs_to_score: int = 60

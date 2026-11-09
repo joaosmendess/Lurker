@@ -9,7 +9,15 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlmodel import SQLModel
 
 from app.companies import CompanyStats, parse_board_url
-from app.models import Application, ApplicationStatus, Job, Profile, StatusChange, WatchedCompany
+from app.models import (
+    Application,
+    ApplicationStatus,
+    Job,
+    JobAnalysis,
+    Profile,
+    StatusChange,
+    WatchedCompany,
+)
 from app.profile import ProfileData
 
 DESCRIPTION_PREVIEW_CHARS = 280
@@ -32,12 +40,27 @@ class JobSummary(BaseModel):
     # The application for this job, if I already triaged it (None = not triaged yet)
     application_id: int | None = None
     application_status: ApplicationStatus | None = None
+    # The AI fit score, 0-100 (None = not analyzed yet)
+    score: int | None = None
+
+
+class AnalysisRead(BaseModel):
+    score: int
+    summary: str
+    matches: list[str]
+    gaps: list[str]
+    red_flags: list[str]
+    pitch: str
+    pitch_warnings: list[str]
+    model: str
+    analyzed_at: datetime
 
 
 class JobDetail(JobSummary):
     """A single job, with the full description. Inherits every JobSummary field."""
 
     description: str
+    analysis: AnalysisRead | None = None
 
 
 class JobPage(BaseModel):
@@ -74,23 +97,32 @@ def column_values(row: SQLModel) -> dict[str, Any]:
     return {name: getattr(row, name) for name in type(row).model_fields}
 
 
-def job_values(job: Job, application: Application | None) -> dict[str, Any]:
+def job_values(
+    job: Job, application: Application | None, analysis: JobAnalysis | None
+) -> dict[str, Any]:
     """Job columns plus the computed fields shared by JobSummary and JobDetail."""
     return {
         **column_values(job),
         "description_preview": make_preview(job.description),
         "application_id": application.id if application else None,
         "application_status": application.status if application else None,
+        "score": analysis.score if analysis else None,
     }
 
 
-def to_summary(job: Job, application: Application | None = None) -> JobSummary:
+def to_summary(
+    job: Job, application: Application | None = None, analysis: JobAnalysis | None = None
+) -> JobSummary:
     # Fields JobSummary doesn't declare (the full description) are ignored by Pydantic
-    return JobSummary.model_validate(job_values(job, application))
+    return JobSummary.model_validate(job_values(job, application, analysis))
 
 
-def to_detail(job: Job, application: Application | None = None) -> JobDetail:
-    return JobDetail.model_validate(job_values(job, application))
+def to_detail(
+    job: Job, application: Application | None = None, analysis: JobAnalysis | None = None
+) -> JobDetail:
+    values = job_values(job, application, analysis)
+    values["analysis"] = column_values(analysis) if analysis else None
+    return JobDetail.model_validate(values)
 
 
 # --- Applications -------------------------------------------------------------
@@ -163,6 +195,26 @@ class ProfileRead(ProfileData):
 
 def to_profile_read(profile: Profile) -> ProfileRead:
     return ProfileRead.model_validate(column_values(profile))
+
+
+# --- Tailored resume -----------------------------------------------------------
+
+
+class TailoredResumeRead(BaseModel):
+    job_id: str
+    content: str
+    changes: list[str]
+    missing: list[str]
+    warnings: list[str]
+    model: str
+    created_at: datetime
+
+
+class LLMStatus(BaseModel):
+    configured: bool
+    has_key: bool
+    model: str
+    base_url: str
 
 
 # --- Watched companies --------------------------------------------------------

@@ -11,7 +11,7 @@ from sqlmodel.sql.expression import Select
 
 from app.db import get_session
 from app.filters import filter_jobs
-from app.models import Application, Job
+from app.models import Application, Job, JobAnalysis
 from app.profile import get_profile
 from app.schemas import JobDetail, JobPage, TagCount, to_detail, to_summary
 
@@ -98,12 +98,22 @@ def build_jobs_query(filters: JobFilters) -> Select[JobRow]:
         statement = statement.where(
             or_(*(tags_text.like(f'%"{like_escape(tag)}"%', escape="\\") for tag in filters.stack))
         )
+    # Joined only to sort: best AI score first, then not-yet-analyzed jobs by date.
     # Jobs without a publish date go last; id breaks ties so pages are stable
+    statement = statement.outerjoin(JobAnalysis, col(JobAnalysis.job_id) == col(Job.id))
     return statement.order_by(
+        col(JobAnalysis.score).desc().nulls_last(),
         col(Job.published_at).desc().nulls_last(),
         col(Job.collected_at).desc(),
         col(Job.id),
     )
+
+
+def analyses_for(session: Session, jobs: list[Job]) -> dict[str, JobAnalysis]:
+    """The analyses of these jobs in one query (not one per job: no N+1)."""
+    ids = [job.id for job in jobs]
+    found = session.exec(select(JobAnalysis).where(col(JobAnalysis.job_id).in_(ids))).all()
+    return {analysis.job_id: analysis for analysis in found}
 
 
 def apply_profile_filter(session: Session, rows: list[JobRow]) -> list[JobRow]:
@@ -140,8 +150,9 @@ def list_jobs(
         total = session.exec(count_statement).one()
         page = list(session.exec(statement.offset(offset).limit(limit)).all())
 
+    analyses = analyses_for(session, [job for job, _ in page])
     return JobPage(
-        items=[to_summary(job, application) for job, application in page],
+        items=[to_summary(job, application, analyses.get(job.id)) for job, application in page],
         total=total,
         limit=limit,
         offset=offset,
@@ -172,4 +183,4 @@ def get_job(job_id: str, session: SessionDep) -> JobDetail:
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
     application = session.exec(select(Application).where(Application.job_id == job_id)).first()
-    return to_detail(job, application)
+    return to_detail(job, application, session.get(JobAnalysis, job_id))

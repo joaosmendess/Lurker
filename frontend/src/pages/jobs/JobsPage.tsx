@@ -80,6 +80,7 @@ export function JobsPage() {
   const tagCounts = useTagCounts(filters)
   const jobs = useMemo(() => list.data?.pages.flatMap((page) => page.items) ?? [], [list.data])
   const total = list.data?.pages.at(-1)?.total
+  const anyScore = jobs.some((job) => job.score !== null)
 
   const triage = useTriage()
   const undo = useUndoTriage()
@@ -254,6 +255,7 @@ export function JobsPage() {
                   job={job}
                   selected={job.id === selectedId}
                   highlightedTags={stack}
+                  showScore={anyScore}
                   onSelect={(id) => select(id, true)}
                 />
               ))}

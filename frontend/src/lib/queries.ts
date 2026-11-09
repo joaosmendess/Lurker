@@ -14,11 +14,15 @@ import { useEffect, useRef } from 'react'
 import {
   createApplication,
   createCompany,
+  createTailoredResume,
   deleteApplication,
   deleteCompany,
   getApplication,
   getCollectStatus,
   getJob,
+  getLLMStatus,
+  getScoringStatus,
+  getTailoredResume,
   getProfile,
   getStackOptions,
   getTagCounts,
@@ -28,6 +32,7 @@ import {
   moveApplication,
   saveProfile,
   startCollection,
+  startScoring,
   updateApplicationNotes,
   updateCompany,
   type JobFilters,
@@ -46,6 +51,9 @@ export const queryKeys = {
   profile: ['profile'] as const,
   stackOptions: ['profile', 'stack-options'] as const,
   companies: ['companies'] as const,
+  llmStatus: ['llm', 'status'] as const,
+  scoring: ['scoring'] as const,
+  tailoredResume: (jobId: string) => ['tailored-resume', jobId] as const,
   applications: ['applications'] as const,
   board: ['applications', 'board'] as const,
   application: (id: number) => ['applications', 'detail', id] as const,
@@ -165,6 +173,68 @@ export function useUndoTriage() {
       applyTriageToCache(queryClient, jobId, null, null)
     },
     onSettled: () => invalidateApplicationsAndJobs(queryClient),
+  })
+}
+
+// --- AI score --------------------------------------------------------------------
+
+export function useScoringStatus() {
+  const queryClient = useQueryClient()
+  const status = useQuery({
+    queryKey: queryKeys.scoring,
+    queryFn: ({ signal }) => getScoringStatus(signal),
+    // While a batch runs, poll to show its progress
+    refetchInterval: (query) => (query.state.data?.running ? 4000 : false),
+  })
+
+  // When a batch ends, the lists get their new scores (and order)
+  const wasRunning = useRef(false)
+  const running = status.data?.running ?? false
+  useEffect(() => {
+    if (wasRunning.current && !running) {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.jobs })
+    }
+    wasRunning.current = running
+  }, [running, queryClient])
+
+  return status
+}
+
+export function useStartScoring() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: startScoring,
+    onSuccess: (status) => queryClient.setQueryData(queryKeys.scoring, status),
+  })
+}
+
+/** Reload the job lists now (new scores arrived while a batch runs). */
+export function useRefreshJobs() {
+  const queryClient = useQueryClient()
+  return () => void queryClient.invalidateQueries({ queryKey: queryKeys.jobs })
+}
+
+// --- Tailored resume -------------------------------------------------------------
+
+export function useLLMStatus() {
+  return useQuery({
+    queryKey: queryKeys.llmStatus,
+    queryFn: ({ signal }) => getLLMStatus(signal),
+  })
+}
+
+export function useTailoredResume(jobId: string) {
+  return useQuery({
+    queryKey: queryKeys.tailoredResume(jobId),
+    queryFn: ({ signal }) => getTailoredResume(jobId, signal),
+  })
+}
+
+export function useCreateTailoredResume(jobId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => createTailoredResume(jobId),
+    onSuccess: (tailored) => queryClient.setQueryData(queryKeys.tailoredResume(jobId), tailored),
   })
 }
 

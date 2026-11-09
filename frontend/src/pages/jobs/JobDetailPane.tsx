@@ -3,6 +3,8 @@ import { Kbd } from '../../components/Kbd'
 import { STATUS_LABELS, formatDateTime, jobDate, relativeAge, sourceLabel, workModeLabel } from '../../lib/format'
 import { useJob } from '../../lib/queries'
 import type { ApplicationStatus, JobSummary } from '../../lib/types'
+import { AnalysisSection } from './AnalysisSection'
+import { TailoredResumeSection } from './TailoredResumeSection'
 
 interface JobDetailPaneProps {
   /** The row from the list: shown instantly while the full description loads */
@@ -107,14 +109,9 @@ export function JobDetailPane({ summary, jobId, onTriage, onUndo, onBack }: JobD
         </a>
       </div>
 
-      <section aria-labelledby="analysis-heading" className="space-y-1 border-y border-rule py-4">
-        <h2 id="analysis-heading" className="font-display text-sm font-semibold">
-          Análise
-        </h2>
-        <p className="text-sm text-graphite">
-          Ainda sem análise. A nota e o pitch aparecem aqui quando a pontuação com a IA for ativada.
-        </p>
-      </section>
+      <AnalysisSection analysis={detail.data?.analysis} />
+
+      <TailoredResumeSection jobId={jobId} />
 
       <section aria-labelledby="description-heading" className="space-y-2">
         <h2 id="description-heading" className="font-display text-sm font-semibold">

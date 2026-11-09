@@ -10,6 +10,9 @@ import type {
   CompanyInput,
   JobDetail,
   JobPage,
+  LLMStatus,
+  ScoringStatus,
+  TailoredResume,
   Profile,
   ProfileInput,
   TagCount,
@@ -105,6 +108,39 @@ export function getTagCounts(filters: JobFilters, signal?: AbortSignal): Promise
 
 export function getJob(id: string, signal?: AbortSignal): Promise<JobDetail> {
   return apiRequest<JobDetail>(`/jobs/${encodeURIComponent(id)}`, { signal })
+}
+
+// --- Tailored resume -------------------------------------------------------------
+
+/** The saved version for this job, or null if it was never generated. */
+export async function getTailoredResume(
+  jobId: string,
+  signal?: AbortSignal,
+): Promise<TailoredResume | null> {
+  try {
+    return await apiRequest<TailoredResume>(`/jobs/${encodeURIComponent(jobId)}/resume`, { signal })
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null
+    throw error
+  }
+}
+
+/** Asks the AI for a new version. Can take up to a minute on free tiers. */
+export function createTailoredResume(jobId: string): Promise<TailoredResume> {
+  return apiRequest<TailoredResume>(`/jobs/${encodeURIComponent(jobId)}/resume`, { method: 'POST' })
+}
+
+export function getScoringStatus(signal?: AbortSignal): Promise<ScoringStatus> {
+  return apiRequest<ScoringStatus>('/scoring', { signal })
+}
+
+/** Starts a batch in the background (202); follow it with getScoringStatus. */
+export function startScoring(): Promise<ScoringStatus> {
+  return apiRequest<ScoringStatus>('/scoring', { method: 'POST' })
+}
+
+export function getLLMStatus(signal?: AbortSignal): Promise<LLMStatus> {
+  return apiRequest<LLMStatus>('/llm/status', { signal })
 }
 
 // --- Applications ----------------------------------------------------------------
