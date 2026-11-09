@@ -292,7 +292,7 @@ Atualize os checkboxes ao concluir cada item.
 ### Fase 2 — Mais fontes e IA
 - [x] Fontes Greenhouse e Lever + `WatchedCompany`
 - [x] `Profile` com currículo e preferências
-- [ ] Pré-filtro
+- [x] Pré-filtro
 - [ ] Pontuação com Claude + `JobAnalysis`
 
 ### Fase 3 — API
