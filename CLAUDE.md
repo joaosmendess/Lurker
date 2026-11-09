@@ -276,8 +276,8 @@ Atualize os checkboxes ao concluir cada item.
 - [x] Modelo `Job`
 - [x] Fonte Remotive
 - [x] Fonte Gupy
-- [ ] `collect.py` salvando sem duplicar
-- [ ] Testes das fontes
+- [x] `collect.py` salvando sem duplicar
+- [x] Testes das fontes
 
 ### Fase 2 — Mais fontes e IA
 - [ ] Fontes Greenhouse e Lever + `WatchedCompany`
