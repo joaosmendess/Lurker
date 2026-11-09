@@ -337,7 +337,7 @@ Atualize os checkboxes ao concluir cada item.
 - [x] Setup React + Vite + Tailwind + TanStack Query
 - [ ] Lista de vagas com nota, filtros e ações (interesse/descartar)
 - [ ] Detalhe da vaga com análise e pitch (botão copiar)
-- [ ] Kanban de candidaturas com arrastar e soltar
+- [x] Kanban de candidaturas com arrastar e soltar
 - [x] Tela de perfil e empresas monitoradas (inclui o "Foco": modalidade,
   cidades, palavras de título e stacks preferidas, editáveis pela UI)
 

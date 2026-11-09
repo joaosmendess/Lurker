@@ -4,8 +4,8 @@ import { ToastProvider } from './components/ToastProvider'
 import { AppShell } from './layout/AppShell'
 import { CompaniesPage } from './pages/companies/CompaniesPage'
 import { JobsPage } from './pages/jobs/JobsPage'
+import { KanbanPage } from './pages/kanban/KanbanPage'
 import { ProfilePage } from './pages/profile/ProfilePage'
-import { UpcomingPage } from './pages/UpcomingPage'
 
 export default function App() {
   return (
@@ -15,15 +15,7 @@ export default function App() {
           <Route element={<AppShell />}>
             <Route index element={<Navigate to="/vagas" replace />} />
             <Route path="vagas" element={<JobsPage />} />
-            <Route
-              path="kanban"
-              element={
-                <UpcomingPage
-                  title="Kanban"
-                  description="O quadro das suas candidaturas chega no próximo passo da Fase 4. As vagas que você marcar com interesse vão aparecer aqui."
-                />
-              }
-            />
+            <Route path="kanban" element={<KanbanPage />} />
             <Route path="empresas" element={<CompaniesPage />} />
             <Route path="perfil" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/vagas" replace />} />

@@ -11,7 +11,13 @@ from tests.conftest import make_job
 @pytest.fixture(autouse=True)
 def seed_jobs(engine: Engine) -> None:
     with Session(engine) as session:
-        session.add_all([make_job("gupy:1", "Dev .NET"), make_job("gupy:2", "Dev React")])
+        session.add_all(
+            [
+                make_job("gupy:1", "Dev .NET"),
+                make_job("gupy:2", "Dev React"),
+                make_job("gupy:3", "Dev Python"),
+            ]
+        )
         session.commit()
 
 
@@ -122,6 +128,21 @@ def test_list_filters_by_status(client: TestClient) -> None:
 
     assert len(everything) == 2
     assert [item["job"]["id"] for item in discarded] == ["gupy:2"]
+
+
+def test_list_accepts_several_statuses(client: TestClient) -> None:
+    create(client, "gupy:1")
+    create(client, "gupy:2", status="discarded")
+    create(client, "gupy:3", status="interview")
+
+    # The kanban's request: every column except "discarded"
+    board = client.get("/applications", params={"status": ["interested", "interview"]}).json()
+
+    assert sorted(item["job"]["id"] for item in board) == ["gupy:1", "gupy:3"]
+
+
+def test_list_rejects_unknown_status(client: TestClient) -> None:
+    assert client.get("/applications", params={"status": "aplicada"}).status_code == 422
 
 
 @pytest.mark.parametrize("method", ["get", "patch"])

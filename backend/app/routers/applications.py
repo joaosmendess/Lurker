@@ -74,14 +74,16 @@ def create_application(body: ApplicationCreate, session: SessionDep) -> Applicat
 @router.get("", response_model=list[ApplicationRead])
 def list_applications(
     session: SessionDep,
-    # alias: the URL keeps "?status=", but the Python name doesn't shadow fastapi.status
-    status_filter: Annotated[ApplicationStatus | None, Query(alias="status")] = None,
+    # alias: the URL keeps "?status=", but the Python name doesn't shadow fastapi.status.
+    # A list: repeat it for several, ?status=interested&status=applied (the kanban
+    # asks for every column but "discarded", which grows with every triage)
+    status_filter: Annotated[list[ApplicationStatus] | None, Query(alias="status")] = None,
 ) -> list[ApplicationRead]:
-    """All applications (the kanban), most recently moved first."""
+    """Applications (the kanban cards), most recently moved first."""
     # Selecting two entities returns (Application, Job) tuples: one query, no N+1
     statement = select(Application, Job).join(Job, col(Application.job_id) == col(Job.id))
-    if status_filter is not None:
-        statement = statement.where(Application.status == status_filter)
+    if status_filter:
+        statement = statement.where(col(Application.status).in_(status_filter))
     statement = statement.order_by(col(Application.updated_at).desc(), col(Application.id))
 
     return [to_application_read(application, job) for application, job in session.exec(statement)]

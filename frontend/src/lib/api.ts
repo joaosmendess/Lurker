@@ -1,6 +1,7 @@
 // Thin typed wrapper around fetch for the Lurker API.
 
 import type {
+  ApplicationDetail,
   ApplicationRead,
   ApplicationStatus,
   CollectStatus,
@@ -120,6 +121,33 @@ export function createApplication(
 
 export function deleteApplication(id: number): Promise<void> {
   return apiRequest<void>(`/applications/${id}`, { method: 'DELETE' })
+}
+
+export function listApplications(
+  statuses: readonly ApplicationStatus[],
+  signal?: AbortSignal,
+): Promise<ApplicationRead[]> {
+  const params = new URLSearchParams()
+  for (const status of statuses) params.append('status', status)
+  return apiRequest<ApplicationRead[]>(`/applications?${params}`, { signal })
+}
+
+export function getApplication(id: number, signal?: AbortSignal): Promise<ApplicationDetail> {
+  return apiRequest<ApplicationDetail>(`/applications/${id}`, { signal })
+}
+
+export function moveApplication(id: number, status: ApplicationStatus): Promise<ApplicationRead> {
+  return apiRequest<ApplicationRead>(`/applications/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  })
+}
+
+export function updateApplicationNotes(id: number, notes: string): Promise<ApplicationRead> {
+  return apiRequest<ApplicationRead>(`/applications/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ notes }),
+  })
 }
 
 // --- Profile ---------------------------------------------------------------------

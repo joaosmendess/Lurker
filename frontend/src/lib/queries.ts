@@ -16,19 +16,23 @@ import {
   createCompany,
   deleteApplication,
   deleteCompany,
+  getApplication,
   getCollectStatus,
   getJob,
   getProfile,
   getStackOptions,
   getTagCounts,
+  listApplications,
   listCompanies,
   listJobs,
+  moveApplication,
   saveProfile,
   startCollection,
+  updateApplicationNotes,
   updateCompany,
   type JobFilters,
 } from './api'
-import type { ApplicationStatus, JobDetail, JobPage } from './types'
+import type { ApplicationRead, ApplicationStatus, JobDetail, JobPage } from './types'
 
 export const PAGE_SIZE = 50
 
@@ -42,6 +46,9 @@ export const queryKeys = {
   profile: ['profile'] as const,
   stackOptions: ['profile', 'stack-options'] as const,
   companies: ['companies'] as const,
+  applications: ['applications'] as const,
+  board: ['applications', 'board'] as const,
+  application: (id: number) => ['applications', 'detail', id] as const,
 }
 
 /** What the sidebar counts and the "Para triar" tab shows. */
@@ -142,8 +149,8 @@ export function useTriage() {
       applyTriageToCache(queryClient, jobId, status, application.id)
     },
     onSettled: () => {
-      // Counts and other lists catch up with the server in the background
-      void queryClient.invalidateQueries({ queryKey: queryKeys.jobs })
+      // Counts, other lists and the kanban catch up with the server in the background
+      invalidateApplicationsAndJobs(queryClient)
     },
   })
 }
@@ -157,9 +164,86 @@ export function useUndoTriage() {
     onSuccess: (_, { jobId }) => {
       applyTriageToCache(queryClient, jobId, null, null)
     },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.jobs })
+    onSettled: () => invalidateApplicationsAndJobs(queryClient),
+  })
+}
+
+// --- Kanban ----------------------------------------------------------------------
+
+/** Kanban columns, in the order of the process. "discarded" stays off the board. */
+export const BOARD_STATUSES = [
+  'interested',
+  'applied',
+  'in_process',
+  'interview',
+  'offer',
+  'rejected',
+] as const satisfies readonly ApplicationStatus[]
+
+export function useBoard() {
+  return useQuery({
+    queryKey: queryKeys.board,
+    queryFn: ({ signal }) => listApplications(BOARD_STATUSES, signal),
+  })
+}
+
+export function useApplication(id: number | null) {
+  return useQuery({
+    queryKey: queryKeys.application(id ?? 0),
+    queryFn: ({ signal }) => getApplication(id!, signal),
+    enabled: id !== null,
+  })
+}
+
+/** Cards and job lists both show the application status: refresh both. */
+function invalidateApplicationsAndJobs(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: queryKeys.applications })
+  void queryClient.invalidateQueries({ queryKey: queryKeys.jobs })
+}
+
+export function useMoveApplication() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: ApplicationStatus }) =>
+      moveApplication(id, status),
+    // Optimistic: the card changes column the moment it's dropped
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.board })
+      const previous = queryClient.getQueryData<ApplicationRead[]>(queryKeys.board)
+      const now = new Date().toISOString()
+      queryClient.setQueryData<ApplicationRead[]>(queryKeys.board, (cards) =>
+        cards?.map((card) => (card.id === id ? { ...card, status, updated_at: now } : card)),
+      )
+      return { previous } // becomes "context" in onError
     },
+    onError: (_error, _variables, context) => {
+      // Server said no: put the card back where it was
+      queryClient.setQueryData(queryKeys.board, context?.previous)
+    },
+    onSettled: () => invalidateApplicationsAndJobs(queryClient),
+  })
+}
+
+export function useUpdateNotes() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, notes }: { id: number; notes: string }) => updateApplicationNotes(id, notes),
+    onSuccess: (saved) => {
+      queryClient.setQueryData<ApplicationRead[]>(queryKeys.board, (cards) =>
+        cards?.map((card) => (card.id === saved.id ? saved : card)),
+      )
+      void queryClient.invalidateQueries({ queryKey: queryKeys.application(saved.id) })
+    },
+  })
+}
+
+/** "Voltar para a triagem": deletes the application, the job is untriaged again. */
+export function useReturnToTriage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteApplication(id),
+    onSettled: () => invalidateApplicationsAndJobs(queryClient),
   })
 }
 

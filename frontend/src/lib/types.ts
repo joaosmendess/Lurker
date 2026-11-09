@@ -70,6 +70,17 @@ export interface ApplicationRead {
   job: JobSummary
 }
 
+export interface StatusChange {
+  /** null for the creation itself (the triage) */
+  from_status: ApplicationStatus | null
+  to_status: ApplicationStatus
+  changed_at: string
+}
+
+export interface ApplicationDetail extends ApplicationRead {
+  history: StatusChange[]
+}
+
 export type CompanyProvider = 'greenhouse' | 'lever'
 
 export interface Company {
