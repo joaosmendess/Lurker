@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lurker</title>
+    <!--
+      Applies the theme before the first paint. Without this, a dark-theme user
+      would see a white flash while React loads. Must match src/lib/theme.ts.
+    -->
+    <script>
+      ;(function () {
+        var preference = null
+        try {
+          preference = localStorage.getItem('lurker.theme')
+        } catch (error) {}
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        var dark = preference === 'dark' || (preference !== 'light' && prefersDark)
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

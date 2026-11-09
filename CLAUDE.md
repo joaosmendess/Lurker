@@ -246,6 +246,19 @@ ruff check . --fix
 ruff format .
 ```
 
+Frontend, dentro de `frontend/` (o backend precisa estar rodando):
+
+```bash
+npm install
+npm run dev     # http://localhost:5173 (porta fixa: o CORS da API só libera ela)
+npm run build   # checa tipos e gera dist/
+npm run lint
+```
+
+Design do frontend: seguir `docs/ui-research.md` (direção "Classificados", temas
+claro/escuro). Só existem as cores do Lurker (`bg-paper`, `text-ink`,
+`text-signal`...): a paleta padrão do Tailwind foi removida de propósito.
+
 Ao adicionar uma dependência: instale, atualize o `requirements.txt` e
 explique para que ela serve.
 
@@ -304,7 +317,7 @@ Atualize os checkboxes ao concluir cada item.
 - [x] Botão "coletar agora" (endpoint que dispara a coleta)
 
 ### Fase 4 — UI
-- [ ] Setup React + Vite + Tailwind + TanStack Query
+- [x] Setup React + Vite + Tailwind + TanStack Query
 - [ ] Lista de vagas com nota, filtros e ações (interesse/descartar)
 - [ ] Detalhe da vaga com análise e pitch (botão copiar)
 - [ ] Kanban de candidaturas com arrastar e soltar

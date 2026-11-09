@@ -16,4 +16,14 @@ copy .env.example .env   # preencha as chaves
 
 pytest                   # testes
 ruff check .             # lint
+uvicorn app.main:app --reload   # API em http://localhost:8000/docs
+```
+
+## Rodando o frontend
+
+Requer Node 22+. Com o backend rodando, dentro de `frontend/`:
+
+```bash
+npm install
+npm run dev              # http://localhost:5173
 ```

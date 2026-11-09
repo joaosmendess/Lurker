@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens: direction A "Classificados" (docs/ui-research.md, section 8).
+ * Every color below is a CSS variable whose value depends on data-theme on <html>,
+ * so components never need "dark:" variants: bg-paper is right in both themes.
+ */
+
+:root,
+[data-theme='light'] {
+  color-scheme: light; /* native scrollbars and form controls follow the theme */
+  --paper: #f7f8f6;
+  --surface: #ffffff;
+  --ink: #1d2321;
+  --graphite: #5f6a66;
+  --rule: #dce1de;
+  --signal: #c2410c;
+  --on-signal: #ffffff;
+  --fit-high: #15803d;
+  --fit-mid: #b45309;
+  --fit-low: #5c636e;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --paper: #141816;
+  --surface: #1b201e;
+  --ink: #e4e8e6;
+  --graphite: #9aa5a0;
+  --rule: #2a312e;
+  --signal: #f0864a;
+  --on-signal: #141816;
+  --fit-high: #4ade80;
+  --fit-mid: #f5a524;
+  --fit-low: #8b949e;
+}
+
+/*
+ * "inline" makes utilities use var(--paper) directly, so they follow the theme.
+ * --color-*: initial removes Tailwind's default palette: bg-indigo-500 and
+ * friends simply don't exist here, only the Lurker tokens do.
+ */
+@theme inline {
+  --color-*: initial;
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-graphite: var(--graphite);
+  --color-rule: var(--rule);
+  --color-signal: var(--signal);
+  --color-on-signal: var(--on-signal);
+  --color-fit-high: var(--fit-high);
+  --color-fit-mid: var(--fit-mid);
+  --color-fit-low: var(--fit-low);
+
+  --font-display: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Atkinson Hyperlegible Next Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+
+  /* One focus style for everything: visible, in the accent color, never removed */
+  :focus-visible {
+    outline: 2px solid var(--signal);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--signal) 25%, transparent);
+  }
+}
+
+/* Respect the OS "reduce motion" setting everywhere */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
