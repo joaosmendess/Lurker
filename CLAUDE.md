@@ -299,7 +299,7 @@ Atualize os checkboxes ao concluir cada item.
 ### Fase 3 — API
 - [x] FastAPI com rotas de vagas (listar, filtrar, detalhar)
 - [x] Rotas de candidaturas (criar, mover status, notas)
-- [ ] Rotas de perfil e empresas monitoradas
+- [x] Rotas de perfil e empresas monitoradas
 - [ ] Botão "coletar agora" (endpoint que dispara a coleta)
 
 ### Fase 4 — UI

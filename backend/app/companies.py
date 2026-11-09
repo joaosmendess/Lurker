@@ -15,6 +15,16 @@ from app.db import engine, init_db
 from app.models import WatchedCompany
 
 
+# Custom exceptions: subclasses of ValueError, so code that catches ValueError
+# (the CLI) keeps working, while the API can tell them apart (422 vs 409).
+class UnknownProviderError(ValueError):
+    pass
+
+
+class CompanyAlreadyWatchedError(ValueError):
+    pass
+
+
 def find_company(session: Session, provider: str, slug: str) -> WatchedCompany | None:
     statement = select(WatchedCompany).where(
         WatchedCompany.provider == provider, WatchedCompany.slug == slug
@@ -23,14 +33,14 @@ def find_company(session: Session, provider: str, slug: str) -> WatchedCompany |
 
 
 def add_company(session: Session, provider: str, slug: str, name: str) -> WatchedCompany:
-    """Add a company. Raises ValueError for unknown providers or duplicates."""
+    """Add a company. Raises UnknownProviderError or CompanyAlreadyWatchedError."""
     provider = provider.lower().strip()
     slug = slug.lower().strip()
     if provider not in COMPANY_FETCHERS:
         supported = ", ".join(COMPANY_FETCHERS)
-        raise ValueError(f"Unknown provider {provider!r}. Supported: {supported}")
+        raise UnknownProviderError(f"Unknown provider {provider!r}. Supported: {supported}")
     if find_company(session, provider, slug) is not None:
-        raise ValueError(f"{provider}:{slug} is already being watched")
+        raise CompanyAlreadyWatchedError(f"{provider}:{slug} is already being watched")
 
     company = WatchedCompany(provider=provider, slug=slug, name=name.strip())
     session.add(company)

@@ -2,12 +2,13 @@
 doesn't change by accident when a column is added (like DTOs vs entities)."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 from sqlmodel import SQLModel
 
-from app.models import Application, ApplicationStatus, Job, StatusChange
+from app.models import Application, ApplicationStatus, Job, Profile, StatusChange, WatchedCompany
+from app.profile import ProfileData
 
 DESCRIPTION_PREVIEW_CHARS = 280
 
@@ -130,3 +131,47 @@ def to_application_detail(
             "history": [column_values(change) for change in history],
         }
     )
+
+
+# --- Profile ------------------------------------------------------------------
+
+
+class ProfileRead(ProfileData):
+    """The saved profile: the same fields accepted by PUT /profile, plus updated_at."""
+
+    updated_at: datetime
+
+
+def to_profile_read(profile: Profile) -> ProfileRead:
+    return ProfileRead.model_validate(column_values(profile))
+
+
+# --- Watched companies --------------------------------------------------------
+
+type Provider = Literal["greenhouse", "lever"]
+
+
+class CompanyCreate(BaseModel):
+    provider: Provider
+    slug: str = Field(min_length=1, max_length=100)
+    name: str = Field(min_length=1, max_length=200)
+
+
+class CompanyUpdate(BaseModel):
+    """Partial update: only the fields sent are changed (None = keep as is)."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    active: bool | None = None
+
+
+class CompanyRead(BaseModel):
+    id: int
+    provider: str
+    slug: str
+    name: str
+    active: bool
+    created_at: datetime
+
+
+def to_company_read(company: WatchedCompany) -> CompanyRead:
+    return CompanyRead.model_validate(column_values(company))
