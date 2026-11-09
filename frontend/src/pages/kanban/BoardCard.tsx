@@ -1,20 +1,36 @@
 import { useDraggable } from '@dnd-kit/core'
 
-import { compactAge, formatDateTime } from '../../lib/format'
-import type { ApplicationRead } from '../../lib/types'
+import { daysSince, formatDateTime } from '../../lib/format'
+import type { ApplicationRead, ApplicationStatus } from '../../lib/types'
+
+/** A card this long in one stage probably needs a follow-up (docs/ui-research.md 5.2). */
+const STALE_DAYS = 7
+
+/** Stages where waiting is the end of the story, so time stopped means nothing. */
+const FINAL_STATUSES: ApplicationStatus[] = ['offer', 'rejected', 'discarded']
 
 /** What a card shows, shared by the card in its column and the copy being dragged. */
 export function CardBody({ card }: { card: ApplicationRead }) {
+  const days = daysSince(card.updated_at)
+  const stale = days >= STALE_DAYS && !FINAL_STATUSES.includes(card.status)
+  const hasNotes = card.notes.trim() !== ''
+
   return (
     <>
       <p className="line-clamp-3 text-sm leading-snug font-medium">{card.job.title}</p>
       <p className="mt-1 truncate text-xs text-graphite">{card.job.company}</p>
-      <p className="mt-2 flex items-center justify-between gap-2 font-mono text-[11px] text-graphite">
-        <span title={`Nesta etapa desde ${formatDateTime(card.updated_at)}`}>
-          {compactAge(card.updated_at)}
-        </span>
-        {card.notes.trim() !== '' && <span>com nota</span>}
-      </p>
+      {(stale || hasNotes) && (
+        <p className="mt-2 flex items-center justify-between gap-2 font-mono text-[11px] text-graphite">
+          {stale ? (
+            <span className="text-fit-mid" title={`Nesta etapa desde ${formatDateTime(card.updated_at)}`}>
+              parada há {days} dias
+            </span>
+          ) : (
+            <span />
+          )}
+          {hasNotes && <span>com nota</span>}
+        </p>
+      )}
     </>
   )
 }

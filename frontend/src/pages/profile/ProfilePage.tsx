@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { StackChip } from '../../components/StackChip'
 import { TagInput } from '../../components/TagInput'
 import { ThemeSwitch } from '../../components/ThemeSwitch'
 import { useToast } from '../../components/toast-context'
@@ -157,7 +158,9 @@ function ProfileForm({ initial }: { initial: ProfileInput }) {
                 />
                 <span>
                   Mostrar todas
-                  <span className="block text-graphite">A IA lê a descrição e decide. Traz mais vagas.</span>
+                  <span className="block text-graphite">
+                    Traz mais vagas, inclusive presenciais em cidades fora da sua lista.
+                  </span>
                 </span>
               </label>
               <label className="flex cursor-pointer items-start gap-2">
@@ -186,19 +189,12 @@ function ProfileForm({ initial }: { initial: ProfileInput }) {
               {(stackOptions.data ?? []).map((tag) => {
                 const active = draft.preferred_stack.includes(tag)
                 return (
-                  <button
+                  <StackChip
                     key={tag}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => update({ preferred_stack: toggled(draft.preferred_stack, tag, !active) })}
-                    className={`rounded border px-1.5 py-0.5 font-mono text-xs ${
-                      active
-                        ? 'border-signal bg-surface text-ink'
-                        : 'border-rule text-graphite hover:border-graphite hover:text-ink'
-                    }`}
-                  >
-                    {tag}
-                  </button>
+                    tag={tag}
+                    selected={active}
+                    onToggle={() => update({ preferred_stack: toggled(draft.preferred_stack, tag, !active) })}
+                  />
                 )
               })}
             </div>

@@ -39,7 +39,8 @@ export function JobDetailPane({ summary, jobId, onTriage, onUndo, onBack }: JobD
   const triaged = job.application_status !== null
 
   return (
-    <article className="mx-auto max-w-[72ch] space-y-6 px-5 py-5 lg:px-8 lg:py-7">
+    // 64ch of Atkinson ≈ 70-75 letters per line: the comfortable range for long reading
+    <article className="mx-auto max-w-[64ch] space-y-6 px-5 py-5 lg:px-8 lg:py-7">
       {backButton}
 
       <header className="space-y-2">

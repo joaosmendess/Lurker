@@ -5,7 +5,9 @@ import { useToast } from '../../components/toast-context'
 import type { JobFilters } from '../../lib/api'
 import { useHotkeys } from '../../lib/useHotkeys'
 import {
+  TRIAGE_FILTERS,
   useCompanies,
+  useJobCount,
   useJobList,
   useProfile,
   useTagCounts,
@@ -67,6 +69,7 @@ export function JobsPage() {
 
   const profile = useProfile()
   const companies = useCompanies()
+  const triageTotal = useJobCount(TRIAGE_FILTERS) // same query as the menu: comes from cache
   const preferredStack = profile.data?.preferred_stack ?? NO_TAGS
   const stack = useMemo(() => parseStack(stackParam, preferredStack), [stackParam, preferredStack])
   const filters = useMemo(
@@ -178,6 +181,8 @@ export function JobsPage() {
           source={source}
           workMode={workMode}
           total={total}
+          // "341 de 839": the menu counts every job to triage, this list only the filtered ones
+          outOf={tab === 'triar' && triageTotal.data !== total ? triageTotal.data : undefined}
           searchRef={searchRef}
           onChange={updateParams}
           companies={companies.data}
@@ -185,6 +190,7 @@ export function JobsPage() {
             <StackFilter
               counts={tagCounts.data}
               selected={stack}
+              fromProfile={stackParam === null}
               onChange={(next) =>
                 updateParams({
                   stack: next.length ? next.join(STACK_SEPARATOR) : preferredStack.length ? ALL_STACKS : '',

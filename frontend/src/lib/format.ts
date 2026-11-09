@@ -35,9 +35,14 @@ export function workModeLabel(job: Pick<JobSummary, 'remote' | 'location'>): str
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+/** Whole days since a date (0 = today). */
+export function daysSince(isoDate: string, now: Date = new Date()): number {
+  return Math.floor((now.getTime() - new Date(isoDate).getTime()) / DAY_MS)
+}
+
 /** Compact age for lists: "hoje", "3d", "2m". */
 export function compactAge(isoDate: string, now: Date = new Date()): string {
-  const days = Math.floor((now.getTime() - new Date(isoDate).getTime()) / DAY_MS)
+  const days = daysSince(isoDate, now)
   if (days <= 0) return 'hoje'
   if (days < 60) return `${days}d`
   return `${Math.floor(days / 30)}m`

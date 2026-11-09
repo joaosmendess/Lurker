@@ -12,6 +12,8 @@ interface JobToolbarProps {
   source: string
   workMode: WorkModeFilter
   total: number | undefined
+  /** Total before the filters, shown as "total de outOf" when they hide jobs */
+  outOf?: number
   searchRef: RefObject<HTMLInputElement | null>
   onChange: (updates: Record<string, string>) => void
   /** Watched companies, offered as sources of their own ("greenhouse:stone") */
@@ -33,6 +35,7 @@ export function JobToolbar({
   source,
   workMode,
   total,
+  outOf,
   searchRef,
   onChange,
   companies = [],
@@ -77,7 +80,15 @@ export function JobToolbar({
         </div>
         {total !== undefined && (
           <span className="font-mono text-xs text-graphite">
-            {total} {total === 1 ? 'vaga' : 'vagas'}
+            {outOf !== undefined ? (
+              <>
+                <span className="text-ink">{total}</span> de {outOf}
+              </>
+            ) : (
+              <>
+                {total} {total === 1 ? 'vaga' : 'vagas'}
+              </>
+            )}
           </span>
         )}
       </div>

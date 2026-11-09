@@ -62,6 +62,8 @@ export function KanbanPage() {
   const showToast = useToast()
   const [params, setParams] = useSearchParams()
   const [draggingId, setDraggingId] = useState<number | null>(null)
+  // Rejections are closed stories: collapsed by default so they don't take a full column
+  const [rejectedCollapsed, setRejectedCollapsed] = useState(true)
 
   // Mobile shows one column at a time (tabs); desktop shows them all
   const mobileColumn = (params.get('coluna') ?? 'interested') as BoardStatus
@@ -193,6 +195,9 @@ export function KanbanPage() {
                   cards={byStatus[status] ?? []}
                   hiddenOnMobile={status !== mobileColumn}
                   onOpen={(id) => setParam('card', String(id))}
+                  {...(status === 'rejected'
+                    ? { collapsed: rejectedCollapsed, onToggleCollapsed: () => setRejectedCollapsed((value) => !value) }
+                    : {})}
                 />
               ))}
             </div>
@@ -222,27 +227,61 @@ interface ColumnProps {
   cards: ApplicationRead[]
   hiddenOnMobile: boolean
   onOpen: (id: number) => void
+  /** Desktop only: shown as a narrow strip with its count (still accepts drops) */
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
 }
 
-function Column({ status, cards, hiddenOnMobile, onOpen }: ColumnProps) {
+function Column({ status, cards, hiddenOnMobile, onOpen, collapsed = false, onToggleCollapsed }: ColumnProps) {
   // The whole column is the drop target, not just its cards
   const { setNodeRef, isOver } = useDroppable({ id: status })
+  const label = STATUS_LABELS[status]
+
+  const width = collapsed
+    ? 'lg:w-12 lg:flex-none'
+    : 'lg:w-auto lg:min-w-48 lg:flex-1 lg:basis-0'
 
   return (
     <section
       ref={setNodeRef}
-      aria-label={STATUS_LABELS[status]}
-      className={`${hiddenOnMobile ? 'hidden lg:flex' : 'flex'} min-h-0 w-full flex-col border-rule lg:w-auto lg:min-w-48 lg:flex-1 lg:basis-0 lg:border-r lg:last:border-r-0 ${
+      aria-label={label}
+      className={`${hiddenOnMobile ? 'hidden lg:flex' : 'flex'} min-h-0 w-full flex-col border-rule ${width} lg:border-r lg:last:border-r-0 ${
         isOver ? 'bg-surface' : ''
       }`}
     >
-      <h2 className="hidden items-baseline justify-between px-3 pt-4 pb-2 lg:flex">
+      {collapsed && (
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label={`Mostrar a coluna ${label} (${cards.length})`}
+          className="hidden h-full w-full flex-col items-center gap-3 pt-4 text-graphite hover:bg-surface hover:text-ink lg:flex"
+        >
+          <span className="font-mono text-xs">{cards.length}</span>
+          {/* Vertical text: the strip stays narrow but still says what it is */}
+          <span className="font-display text-sm font-semibold [writing-mode:vertical-rl]">{label}</span>
+        </button>
+      )}
+
+      <h2 className={`${collapsed ? 'hidden' : 'hidden lg:flex'} items-baseline justify-between gap-2 px-3 pt-4 pb-2`}>
         <span className={`font-display text-sm font-semibold ${HEADER_TONE[status] ?? 'text-ink'}`}>
-          {STATUS_LABELS[status]}
+          {label}
         </span>
-        <span className="font-mono text-xs text-graphite">{cards.length}</span>
+        <span className="flex items-baseline gap-2">
+          {onToggleCollapsed && (
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className="text-xs text-graphite underline-offset-2 hover:text-ink hover:underline"
+            >
+              Recolher
+            </button>
+          )}
+          <span className="font-mono text-xs text-graphite">{cards.length}</span>
+        </span>
       </h2>
-      <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pt-3 pb-4 lg:pt-0">
+      <ul
+        className={`${collapsed ? 'lg:hidden' : ''} min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pt-3 pb-4 lg:pt-0`}
+      >
         {cards.map((card) => (
           <BoardCard key={card.id} card={card} onOpen={onOpen} />
         ))}
