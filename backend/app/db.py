@@ -22,9 +22,13 @@ def build_engine(database_url: str) -> Engine:
 engine: Engine = build_engine(get_settings().database_url)
 
 
-def init_db() -> None:
+def init_db(db_engine: Engine = engine) -> None:
     """Create all tables registered in SQLModel.metadata (no-op if they exist)."""
-    SQLModel.metadata.create_all(engine)
+    # Importing the module is what registers the table classes in the metadata.
+    # It's kept next to create_all to make that hidden dependency explicit.
+    import app.models  # noqa: F401
+
+    SQLModel.metadata.create_all(db_engine)
 
 
 def get_session() -> Iterator[Session]:
