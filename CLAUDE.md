@@ -267,7 +267,7 @@ Atualize os checkboxes ao concluir cada item.
 
 ### Fase 1 — Coleta
 - [x] Estrutura do backend, venv, requirements, .gitignore
-- [ ] Config (pydantic-settings) e banco (SQLModel + SQLite)
+- [x] Config (pydantic-settings) e banco (SQLModel + SQLite)
 - [ ] Modelo `Job`
 - [ ] Fonte Remotive
 - [ ] Fonte Gupy
