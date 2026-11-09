@@ -13,15 +13,19 @@ import { useEffect, useRef } from 'react'
 
 import {
   createApplication,
+  createCompany,
   deleteApplication,
+  deleteCompany,
   getCollectStatus,
   getJob,
   getProfile,
   getStackOptions,
   getTagCounts,
+  listCompanies,
   listJobs,
   saveProfile,
   startCollection,
+  updateCompany,
   type JobFilters,
 } from './api'
 import type { ApplicationStatus, JobDetail, JobPage } from './types'
@@ -37,6 +41,7 @@ export const queryKeys = {
   collect: ['collect'] as const,
   profile: ['profile'] as const,
   stackOptions: ['profile', 'stack-options'] as const,
+  companies: ['companies'] as const,
 }
 
 /** What the sidebar counts and the "Para triar" tab shows. */
@@ -186,6 +191,43 @@ export function useSaveProfile() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.jobs })
     },
   })
+}
+
+// --- Watched companies -----------------------------------------------------------
+
+export function useCompanies() {
+  return useQuery({
+    queryKey: queryKeys.companies,
+    queryFn: ({ signal }) => listCompanies(signal),
+  })
+}
+
+/** After any company change: its numbers and the job lists may both have changed. */
+function useRefreshCompaniesAndJobs() {
+  const queryClient = useQueryClient()
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.companies })
+    void queryClient.invalidateQueries({ queryKey: queryKeys.jobs })
+  }
+}
+
+export function useCreateCompany() {
+  const refresh = useRefreshCompaniesAndJobs()
+  return useMutation({ mutationFn: createCompany, onSuccess: refresh })
+}
+
+export function useUpdateCompany() {
+  const refresh = useRefreshCompaniesAndJobs()
+  return useMutation({
+    mutationFn: ({ id, ...changes }: { id: number; name?: string; active?: boolean }) =>
+      updateCompany(id, changes),
+    onSuccess: refresh,
+  })
+}
+
+export function useDeleteCompany() {
+  const refresh = useRefreshCompaniesAndJobs()
+  return useMutation({ mutationFn: deleteCompany, onSuccess: refresh })
 }
 
 // --- Collection ------------------------------------------------------------------

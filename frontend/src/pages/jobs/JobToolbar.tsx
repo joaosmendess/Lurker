@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 
+import { boardSource } from '../../lib/boards'
+import type { Company } from '../../lib/types'
+
 export type JobTab = 'triar' | 'todas'
 export type WorkModeFilter = '' | 'remoto' | 'presencial'
 
@@ -11,6 +14,8 @@ interface JobToolbarProps {
   total: number | undefined
   searchRef: RefObject<HTMLInputElement | null>
   onChange: (updates: Record<string, string>) => void
+  /** Watched companies, offered as sources of their own ("greenhouse:stone") */
+  companies?: Company[]
   /** Extra filter row rendered at the bottom (the stack chips) */
   extra?: ReactNode
 }
@@ -30,6 +35,7 @@ export function JobToolbar({
   total,
   searchRef,
   onChange,
+  companies = [],
   extra,
 }: JobToolbarProps) {
   // The input updates instantly; the URL (and the API call) only after a pause in typing
@@ -97,6 +103,15 @@ export function JobToolbar({
             <option value="greenhouse">Greenhouse</option>
             <option value="lever">Lever</option>
             <option value="github">GitHub (comunidade)</option>
+            {companies.length > 0 && (
+              <optgroup label="Empresas monitoradas">
+                {companies.map((company) => (
+                  <option key={company.id} value={boardSource(company)}>
+                    {company.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </label>
         <label className="min-w-0 flex-1">

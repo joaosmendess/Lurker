@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session
 
-from app.companies import add_company, list_companies, remove_company
+from app.companies import add_company, list_companies, parse_board_url, remove_company
 from app.db import build_engine, init_db
 from app.models import WatchedCompany
 
@@ -59,3 +59,21 @@ def test_remove(session: Session) -> None:
     assert remove_company(session, "lever", "acme") is True
     assert remove_company(session, "lever", "acme") is False
     assert list_companies(session) == []
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("https://job-boards.greenhouse.io/Stone/jobs/123", ("greenhouse", "stone")),
+        ("boards.greenhouse.io/embed/job_board?for=vtex", ("greenhouse", "vtex")),
+        ("https://boards-api.greenhouse.io/v1/boards/ebanx/jobs", ("greenhouse", "ebanx")),
+        ("https://jobs.lever.co/netflix", ("lever", "netflix")),
+        ("https://api.lever.co/v0/postings/netflix?mode=json", ("lever", "netflix")),
+        ("stone", None),  # a bare slug, not a link
+        ("https://example.com/stone", None),  # not a board site
+        ("https://boards.greenhouse.io/embed/job_board", None),  # embed without ?for=
+        ("https://jobs.lever.co/", None),  # no slug at all
+    ],
+)
+def test_parse_board_url(text: str, expected: tuple[str, str] | None) -> None:
+    assert parse_board_url(text) == expected

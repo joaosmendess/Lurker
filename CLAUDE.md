@@ -233,9 +233,11 @@ pip install -r requirements.txt
 # coletar vagas manualmente
 python -m app.collect
 
-# empresas monitoradas (Greenhouse/Lever)
+# empresas monitoradas (Greenhouse/Lever): também pela tela "Empresas" do frontend.
+# "add" consulta o board uma vez: slug errado falha na hora, e as vagas já entram.
 python -m app.companies list
 python -m app.companies add greenhouse <slug> "<Nome>"
+python -m app.companies add https://job-boards.greenhouse.io/<slug> "<Nome>"
 python -m app.companies remove greenhouse <slug>
 
 # perfil (currículo + preferências + foco): edite pela tela "Foco" do frontend.
@@ -336,7 +338,7 @@ Atualize os checkboxes ao concluir cada item.
 - [ ] Lista de vagas com nota, filtros e ações (interesse/descartar)
 - [ ] Detalhe da vaga com análise e pitch (botão copiar)
 - [ ] Kanban de candidaturas com arrastar e soltar
-- [ ] Tela de perfil e empresas monitoradas (inclui o "Foco": modalidade,
+- [x] Tela de perfil e empresas monitoradas (inclui o "Foco": modalidade,
   cidades, palavras de título e stacks preferidas, editáveis pela UI)
 
 ### Fase 5 — Automação

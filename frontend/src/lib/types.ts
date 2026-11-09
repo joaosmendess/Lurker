@@ -70,6 +70,33 @@ export interface ApplicationRead {
   job: JobSummary
 }
 
+export type CompanyProvider = 'greenhouse' | 'lever'
+
+export interface Company {
+  id: number
+  provider: CompanyProvider
+  slug: string
+  name: string
+  active: boolean
+  created_at: string
+  job_count: number
+  /** Untriaged jobs that pass the profile pre-filter */
+  to_triage: number
+  failed_last_collect: boolean
+}
+
+export interface CompanyCreated extends Company {
+  found_jobs: number
+  saved_jobs: number
+}
+
+/** Body of POST /companies. `slug` may be a pasted board link; then provider is optional. */
+export interface CompanyInput {
+  provider?: CompanyProvider
+  slug: string
+  name: string
+}
+
 export interface CollectRun {
   id: number
   started_at: string

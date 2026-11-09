@@ -1,12 +1,14 @@
 """API input/output models. Kept apart from the tables so the API contract
 doesn't change by accident when a column is added (like DTOs vs entities)."""
 
+from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlmodel import SQLModel
 
+from app.companies import CompanyStats, parse_board_url
 from app.models import Application, ApplicationStatus, Job, Profile, StatusChange, WatchedCompany
 from app.profile import ProfileData
 
@@ -169,9 +171,30 @@ type Provider = Literal["greenhouse", "lever"]
 
 
 class CompanyCreate(BaseModel):
+    """A board to watch: provider + slug, or a pasted link in "slug" (provider then optional)."""
+
+    # Strips every str field before the length checks, so "  " fails min_length
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     provider: Provider
-    slug: str = Field(min_length=1, max_length=100)
+    # Only URL-safe characters: the slug goes straight into the board's URL
+    slug: str = Field(min_length=1, max_length=100, pattern=r"^[a-z0-9][a-z0-9_.-]*$")
     name: str = Field(min_length=1, max_length=200)
+
+    # mode="before": runs on the raw JSON dict, before any field is validated.
+    # That's what lets a link fill in two fields (provider and slug) at once.
+    @model_validator(mode="before")
+    @classmethod
+    def read_board_link(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or not isinstance(data.get("slug"), str):
+            return data  # let the normal validation report what's wrong
+        data = dict(data)  # copy: never change the caller's dict
+        parsed = parse_board_url(data["slug"])
+        if parsed is not None:
+            data["provider"], data["slug"] = parsed
+        else:
+            data["slug"] = data["slug"].strip().lower()
+        return data
 
 
 class CompanyUpdate(BaseModel):
@@ -188,7 +211,17 @@ class CompanyRead(BaseModel):
     name: str
     active: bool
     created_at: datetime
+    job_count: int = 0
+    to_triage: int = 0
+    failed_last_collect: bool = False
 
 
-def to_company_read(company: WatchedCompany) -> CompanyRead:
-    return CompanyRead.model_validate(column_values(company))
+class CompanyCreated(CompanyRead):
+    found_jobs: int  # open jobs on the board when it was added
+    saved_jobs: int  # of those, how many were new
+
+
+def to_company_read(company: WatchedCompany, stats: CompanyStats | None = None) -> CompanyRead:
+    stats = stats or CompanyStats()
+    # asdict turns the dataclass into a dict; ** merges it with the columns
+    return CompanyRead.model_validate({**column_values(company), **asdict(stats)})

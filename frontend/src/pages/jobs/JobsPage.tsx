@@ -4,7 +4,14 @@ import { useSearchParams } from 'react-router'
 import { useToast } from '../../components/toast-context'
 import type { JobFilters } from '../../lib/api'
 import { useHotkeys } from '../../lib/useHotkeys'
-import { useJobList, useProfile, useTagCounts, useTriage, useUndoTriage } from '../../lib/queries'
+import {
+  useCompanies,
+  useJobList,
+  useProfile,
+  useTagCounts,
+  useTriage,
+  useUndoTriage,
+} from '../../lib/queries'
 import type { ApplicationStatus, JobSummary } from '../../lib/types'
 import { CollectPanel } from '../../layout/CollectPanel'
 import { JobDetailPane } from './JobDetailPane'
@@ -59,6 +66,7 @@ export function JobsPage() {
   const selectedId = params.get('vaga')
 
   const profile = useProfile()
+  const companies = useCompanies()
   const preferredStack = profile.data?.preferred_stack ?? NO_TAGS
   const stack = useMemo(() => parseStack(stackParam, preferredStack), [stackParam, preferredStack])
   const filters = useMemo(
@@ -172,6 +180,7 @@ export function JobsPage() {
           total={total}
           searchRef={searchRef}
           onChange={updateParams}
+          companies={companies.data}
           extra={
             <StackFilter
               counts={tagCounts.data}

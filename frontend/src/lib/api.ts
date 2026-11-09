@@ -4,6 +4,9 @@ import type {
   ApplicationRead,
   ApplicationStatus,
   CollectStatus,
+  Company,
+  CompanyCreated,
+  CompanyInput,
   JobDetail,
   JobPage,
   Profile,
@@ -131,6 +134,28 @@ export function saveProfile(profile: ProfileInput): Promise<Profile> {
 
 export function getStackOptions(signal?: AbortSignal): Promise<string[]> {
   return apiRequest<string[]>('/profile/stack-options', { signal })
+}
+
+// --- Watched companies -----------------------------------------------------------
+
+export function listCompanies(signal?: AbortSignal): Promise<Company[]> {
+  return apiRequest<Company[]>('/companies', { signal })
+}
+
+/** Checks the board on the provider's site before saving, so it can take a few seconds. */
+export function createCompany(company: CompanyInput): Promise<CompanyCreated> {
+  return apiRequest<CompanyCreated>('/companies', { method: 'POST', body: JSON.stringify(company) })
+}
+
+export function updateCompany(
+  id: number,
+  changes: { name?: string; active?: boolean },
+): Promise<Company> {
+  return apiRequest<Company>(`/companies/${id}`, { method: 'PATCH', body: JSON.stringify(changes) })
+}
+
+export function deleteCompany(id: number): Promise<void> {
+  return apiRequest<void>(`/companies/${id}`, { method: 'DELETE' })
 }
 
 // --- Collection ------------------------------------------------------------------

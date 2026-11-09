@@ -36,7 +36,10 @@ class JobFilters:
 
 
 def job_filters(
-    source: str | None = None,
+    source: Annotated[
+        str | None,
+        Query(max_length=150, description='"greenhouse", or one board: "greenhouse:stone"'),
+    ] = None,
     remote: bool | None = None,
     q: Annotated[str | None, Query(max_length=100, description="search in title/company")] = None,
     prefiltered: Annotated[
@@ -69,7 +72,12 @@ def build_jobs_query(filters: JobFilters) -> Select[JobRow]:
     statement = select(Job, Application).outerjoin(
         Application, col(Application.job_id) == col(Job.id)
     )
-    if filters.source is not None:
+    if filters.source is not None and ":" in filters.source:
+        # One company's board, "greenhouse:stone": the prefix of its job ids
+        statement = statement.where(
+            col(Job.id).like(f"{like_escape(filters.source)}:%", escape="\\")
+        )
+    elif filters.source is not None:
         statement = statement.where(Job.source == filters.source)
     if filters.remote is not None:
         statement = statement.where(Job.remote == filters.remote)
