@@ -1,0 +1,19 @@
+[project]
+name = "lurker"
+version = "0.1.0"
+description = "Collects job postings, scores them against my resume with Claude and tracks applications."
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes (unused imports, undefined names),
+# I: import sorting, UP: modern Python syntax, B: common bug patterns
+select = ["E", "W", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Lets tests do "from app..." without installing the package
+pythonpath = ["."]

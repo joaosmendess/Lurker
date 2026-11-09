@@ -1,0 +1,24 @@
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Database (SQLite)
+*.db
+*.db-journal
+
+# Frontend (phase 4)
+node_modules/
+dist/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

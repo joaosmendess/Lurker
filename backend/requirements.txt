@@ -1,0 +1,15 @@
+# API
+fastapi==0.162.2
+uvicorn[standard]==0.54.0
+
+# Database
+sqlmodel==0.0.48
+
+# HTTP + config
+httpx==0.28.1
+pydantic-settings==2.16.2
+
+# Dev: tests and lint
+pytest==9.2.0
+respx==0.23.1
+ruff==0.17.4
