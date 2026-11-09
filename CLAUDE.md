@@ -201,6 +201,7 @@ GMAIL_APP_PASSWORD=
 EMAIL_TO=
 COLLECT_CRON=0 7 * * 1-5
 TIMEZONE=America/Maceio
+FRONTEND_ORIGIN=http://localhost:5173
 GUPY_SEARCH_TERMS=desenvolvedor,developer,programador,engenheiro de software,full stack,backend
 ```
 
@@ -296,7 +297,7 @@ Atualize os checkboxes ao concluir cada item.
 - [ ] Pontuação com Claude + `JobAnalysis`
 
 ### Fase 3 — API
-- [ ] FastAPI com rotas de vagas (listar, filtrar, detalhar)
+- [x] FastAPI com rotas de vagas (listar, filtrar, detalhar)
 - [ ] Rotas de candidaturas (criar, mover status, notas)
 - [ ] Rotas de perfil e empresas monitoradas
 - [ ] Botão "coletar agora" (endpoint que dispara a coleta)

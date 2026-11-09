@@ -1,8 +1,10 @@
 """Database engine, table creation and session handling."""
 
 from collections.abc import Iterator
+from typing import Any
 
 from sqlalchemy.engine import Engine
+from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.config import get_settings
@@ -11,11 +13,16 @@ from app.config import get_settings
 def build_engine(database_url: str) -> Engine:
     """Create the engine. Kept separate so tests can build an in-memory one."""
     connect_args: dict[str, object] = {}
+    extra_options: dict[str, Any] = {}
     if database_url.startswith("sqlite"):
         # SQLite refuses connections shared across threads by default,
         # but FastAPI runs sync routes in a thread pool.
         connect_args["check_same_thread"] = False
-    return create_engine(database_url, connect_args=connect_args)
+    if database_url == "sqlite://":
+        # In-memory: every new connection would be a new, empty database.
+        # StaticPool reuses a single connection, so all threads see the same data.
+        extra_options["poolclass"] = StaticPool
+    return create_engine(database_url, connect_args=connect_args, **extra_options)
 
 
 # One engine per process: it owns the connection pool.

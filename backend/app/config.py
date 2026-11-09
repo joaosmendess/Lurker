@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     collect_cron: str = "0 7 * * 1-5"
     timezone: str = "America/Maceio"
 
+    # The only origin allowed by CORS (the local React dev server)
+    frontend_origin: str = "http://localhost:5173"
+
     # NoDecode: don't expect JSON in the env var; split_comma_separated parses it
     gupy_search_terms: Annotated[list[str], NoDecode] = [
         "desenvolvedor",
