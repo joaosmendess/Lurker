@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { ToastProvider } from './components/ToastProvider'
 import { AppShell } from './layout/AppShell'
 import { JobsPage } from './pages/jobs/JobsPage'
+import { ProfilePage } from './pages/profile/ProfilePage'
 import { UpcomingPage } from './pages/UpcomingPage'
 
 export default function App() {
@@ -31,15 +32,7 @@ export default function App() {
                 />
               }
             />
-            <Route
-              path="perfil"
-              element={
-                <UpcomingPage
-                  title="Perfil"
-                  description="A edição do perfil chega em breve. Por enquanto, edite backend/profile.toml e rode python -m app.profile import."
-                />
-              }
-            />
+            <Route path="perfil" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/vagas" replace />} />
           </Route>
         </Routes>

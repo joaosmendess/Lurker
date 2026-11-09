@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router'
 import { useToast } from '../../components/toast-context'
 import type { JobFilters } from '../../lib/api'
 import { useHotkeys } from '../../lib/useHotkeys'
-import { useJobList, useTagCounts, useTriage, useUndoTriage } from '../../lib/queries'
+import { useJobList, useProfile, useTagCounts, useTriage, useUndoTriage } from '../../lib/queries'
 import type { ApplicationStatus, JobSummary } from '../../lib/types'
 import { CollectPanel } from '../../layout/CollectPanel'
 import { JobDetailPane } from './JobDetailPane'
@@ -30,8 +30,18 @@ function toFilters(
   }
 }
 
-// Stacks live in the URL as one comma-separated param: ?stack=.NET,React
+// Stacks live in the URL as one comma-separated param: ?stack=.NET,React.
+// No param = use the profile's preferred stacks; ?stack=todas = explicitly none
+// (otherwise clearing the chips would bring the preferred ones right back).
 const STACK_SEPARATOR = ','
+const ALL_STACKS = 'todas'
+const NO_TAGS: string[] = [] // stable reference, so memoized values don't change for nothing
+
+function parseStack(param: string | null, preferred: string[]): string[] {
+  if (param === null) return preferred
+  if (param === ALL_STACKS) return NO_TAGS
+  return param.split(STACK_SEPARATOR).filter(Boolean)
+}
 
 const TRIAGE_MESSAGES: Record<'interested' | 'discarded', string> = {
   interested: 'Marcada como interesse',
@@ -45,10 +55,12 @@ export function JobsPage() {
   const query = params.get('q') ?? ''
   const source = params.get('fonte') ?? ''
   const workMode = (params.get('modo') ?? '') as WorkModeFilter
-  const stackParam = params.get('stack') ?? ''
+  const stackParam = params.get('stack')
   const selectedId = params.get('vaga')
 
-  const stack = useMemo(() => stackParam.split(STACK_SEPARATOR).filter(Boolean), [stackParam])
+  const profile = useProfile()
+  const preferredStack = profile.data?.preferred_stack ?? NO_TAGS
+  const stack = useMemo(() => parseStack(stackParam, preferredStack), [stackParam, preferredStack])
   const filters = useMemo(
     () => toFilters(tab, query, source, workMode, stack),
     [tab, query, source, workMode, stack],
@@ -164,7 +176,12 @@ export function JobsPage() {
             <StackFilter
               counts={tagCounts.data}
               selected={stack}
-              onChange={(next) => updateParams({ stack: next.join(STACK_SEPARATOR), vaga: '' })}
+              onChange={(next) =>
+                updateParams({
+                  stack: next.length ? next.join(STACK_SEPARATOR) : preferredStack.length ? ALL_STACKS : '',
+                  vaga: '',
+                })
+              }
             />
           }
         />
@@ -186,7 +203,14 @@ export function JobsPage() {
                   <p className="font-medium">Nenhuma vaga com esses filtros.</p>
                   <button
                     type="button"
-                    onClick={() => updateParams({ q: '', fonte: '', modo: '', stack: '' })}
+                    onClick={() =>
+                      updateParams({
+                        q: '',
+                        fonte: '',
+                        modo: '',
+                        stack: preferredStack.length ? ALL_STACKS : '',
+                      })
+                    }
                     className="text-sm text-signal underline-offset-2 hover:underline"
                   >
                     Limpar filtros

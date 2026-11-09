@@ -84,6 +84,11 @@ class Profile(SQLModel, table=True):
     salary_expectation: str = ""
     # Jobs whose title contains any of these words are dropped before the AI
     excluded_title_words: list[str] = Field(default_factory=list, sa_column=json_list_column())
+    # Stack tags pre-selected in the job list (a view filter, never a discard)
+    preferred_stack: list[str] = Field(default_factory=list, sa_column=json_list_column())
+    # Jobs whose work mode is unknown: False = always keep (the AI decides);
+    # True = drop them when their location names a city outside accepted_cities
+    strict_unknown_work_mode: bool = False
     updated_at: datetime = Field(default_factory=utc_now)
 
 

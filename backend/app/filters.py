@@ -67,8 +67,39 @@ def work_mode_rejection(job: Job, profile: Profile) -> str | None:
             return f"hybrid/onsite outside accepted cities ({job.location or 'no location'})"
         return None
 
-    # remote is None: unknown. Let the AI read the description and decide.
+    # remote is None: unknown. By default the AI reads the description and decides.
+    if profile.strict_unknown_work_mode and names_other_city(job.location, profile):
+        return f"unknown work mode, located outside accepted cities ({job.location})"
     return None
+
+
+# Locations that name a country or region, not a city: they don't imply in-person
+# work (e.g. QuintoAndar lists remote-first jobs as just "Brasil")
+BROAD_LOCATIONS: frozenset[str] = frozenset(
+    {
+        "brasil",
+        "brazil",
+        "latam",
+        "latin america",
+        "america latina",
+        "americas",
+        "worldwide",
+        "anywhere",
+        "global",
+        "south america",
+        "america do sul",
+    }
+)
+
+
+def names_other_city(location: str | None, profile: Profile) -> bool:
+    """True when the location points to a specific place outside the accepted cities."""
+    if not location:
+        return False
+    normalized = normalize(location).strip(" .,")
+    if normalized in BROAD_LOCATIONS or "remot" in normalized:
+        return False
+    return not is_in_accepted_city(location, profile.accepted_cities)
 
 
 def rejection_reason(job: Job, profile: Profile) -> str | None:

@@ -6,6 +6,8 @@ import type {
   CollectStatus,
   JobDetail,
   JobPage,
+  Profile,
+  ProfileInput,
   TagCount,
 } from './types'
 
@@ -22,11 +24,22 @@ export class ApiError extends Error {
   }
 }
 
+interface ValidationIssue {
+  loc?: (string | number)[]
+  msg?: string
+}
+
 async function readErrorMessage(response: Response): Promise<string> {
   try {
     const body: unknown = await response.json()
-    if (body && typeof body === 'object' && 'detail' in body && typeof body.detail === 'string') {
-      return body.detail
+    if (body && typeof body === 'object' && 'detail' in body) {
+      if (typeof body.detail === 'string') return body.detail
+      // 422 from FastAPI: detail is a list like [{ loc: ["body", "resume"], msg: "..." }]
+      if (Array.isArray(body.detail)) {
+        return (body.detail as ValidationIssue[])
+          .map((issue) => `${issue.loc?.at(-1) ?? 'campo'}: ${issue.msg ?? 'inválido'}`)
+          .join('; ')
+      }
     }
   } catch {
     // Not JSON; fall through to the status text
@@ -104,6 +117,20 @@ export function createApplication(
 
 export function deleteApplication(id: number): Promise<void> {
   return apiRequest<void>(`/applications/${id}`, { method: 'DELETE' })
+}
+
+// --- Profile ---------------------------------------------------------------------
+
+export function getProfile(signal?: AbortSignal): Promise<Profile> {
+  return apiRequest<Profile>('/profile', { signal })
+}
+
+export function saveProfile(profile: ProfileInput): Promise<Profile> {
+  return apiRequest<Profile>('/profile', { method: 'PUT', body: JSON.stringify(profile) })
+}
+
+export function getStackOptions(signal?: AbortSignal): Promise<string[]> {
+  return apiRequest<string[]>('/profile/stack-options', { signal })
 }
 
 // --- Collection ------------------------------------------------------------------

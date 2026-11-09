@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { to: '/vagas', label: 'Vagas' },
   { to: '/kanban', label: 'Kanban' },
   { to: '/empresas', label: 'Empresas' },
-  { to: '/perfil', label: 'Perfil' },
+  { to: '/perfil', label: 'Foco' },
 ] as const
 
 function TriageCount() {

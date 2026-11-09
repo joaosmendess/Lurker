@@ -8,10 +8,17 @@ from sqlmodel import Session
 from app.db import get_session
 from app.profile import ProfileData, get_profile, save_profile
 from app.schemas import ProfileRead, to_profile_read
+from app.stack import STACK_PATTERNS
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
 SessionDep = Annotated[Session, Depends(get_session)]
+
+
+@router.get("/stack-options", response_model=list[str])
+def stack_options() -> list[str]:
+    """Every stack tag the detector knows, in display order (for the "preferred stack" picker)."""
+    return list(STACK_PATTERNS)
 
 
 @router.get("", response_model=ProfileRead)

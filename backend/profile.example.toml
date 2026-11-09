@@ -24,3 +24,10 @@ salary_expectation = ""
 
 # Jobs whose title contains any of these words are dropped before the AI
 excluded_title_words = ["estágio", "intern", "staff", "principal"]
+
+# Stack tags pre-selected in the job list (view filter only; see GET /profile/stack-options)
+preferred_stack = []
+
+# Jobs with unknown work mode: false = keep them all (the AI decides);
+# true = hide those located in a city outside accepted_cities
+strict_unknown_work_mode = false

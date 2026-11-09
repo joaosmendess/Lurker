@@ -37,6 +37,8 @@ engine: Engine = build_engine(get_settings().database_url)
 # EF Core's Add-Migration).
 ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("job", "tags", "JSON NOT NULL DEFAULT '[]'"),
+    ("profile", "preferred_stack", "JSON NOT NULL DEFAULT '[]'"),
+    ("profile", "strict_unknown_work_mode", "BOOLEAN NOT NULL DEFAULT 0"),
 ]
 
 

@@ -77,6 +77,25 @@ def test_work_mode_rules(
     assert (rejection_reason(job, profile) is None) is should_pass
 
 
+@pytest.mark.parametrize(
+    ("location", "strict", "should_pass"),
+    [
+        ("São Paulo, Sao Paulo, Brasil", False, True),  # default: the AI decides
+        ("São Paulo, Sao Paulo, Brasil", True, False),
+        ("Maceió - AL", True, True),  # accepted city
+        ("Brasil", True, True),  # a country is not a city
+        ("LATAM", True, True),
+        ("Remoto - Brasil", True, True),
+        (None, True, True),  # no location: nothing to judge
+    ],
+)
+def test_strict_unknown_work_mode(location: str | None, strict: bool, should_pass: bool) -> None:
+    profile = make_profile(strict_unknown_work_mode=strict)
+    job = make_job(remote=None, location=location)
+
+    assert (rejection_reason(job, profile) is None) is should_pass
+
+
 def test_title_is_checked_before_work_mode() -> None:
     reason = rejection_reason(
         make_job(title="Staff Engineer", remote=False, location="Recife"), make_profile()

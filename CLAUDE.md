@@ -238,7 +238,8 @@ python -m app.companies list
 python -m app.companies add greenhouse <slug> "<Nome>"
 python -m app.companies remove greenhouse <slug>
 
-# perfil (currículo + preferências): edite profile.toml (git-ignored) e importe
+# perfil (currículo + preferências + foco): edite pela tela "Foco" do frontend.
+# O import abaixo SOBRESCREVE o que foi editado na tela (útil só para começar do zero)
 python -m app.profile import
 python -m app.profile show
 

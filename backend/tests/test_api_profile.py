@@ -42,6 +42,29 @@ def test_put_replaces_the_whole_profile(client: TestClient) -> None:
     assert body["work_modes"] == ["onsite"]
 
 
+def test_preferred_stack_and_strict_mode_round_trip(client: TestClient) -> None:
+    body = profile_body(preferred_stack=[".NET", "C#", ".NET"], strict_unknown_work_mode=True)
+
+    saved = client.put("/profile", json=body).json()
+
+    assert saved["preferred_stack"] == [".NET", "C#"]  # deduplicated, order kept
+    assert saved["strict_unknown_work_mode"] is True
+
+
+def test_unknown_stack_tag_is_rejected(client: TestClient) -> None:
+    response = client.put("/profile", json=profile_body(preferred_stack=["Cobol++"]))
+
+    assert response.status_code == 422
+    assert "Cobol++" in response.text
+
+
+def test_stack_options_lists_known_tags(client: TestClient) -> None:
+    options = client.get("/profile/stack-options").json()
+
+    assert options[:2] == ["C#", ".NET"]
+    assert "React Native" in options
+
+
 def test_put_validates_like_the_toml_import(client: TestClient) -> None:
     assert client.put("/profile", json=profile_body(work_modes=["remoto"])).status_code == 422
     assert client.put("/profile", json=profile_body(resume="  ")).status_code == 422

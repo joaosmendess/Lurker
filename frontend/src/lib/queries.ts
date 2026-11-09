@@ -16,8 +16,11 @@ import {
   deleteApplication,
   getCollectStatus,
   getJob,
+  getProfile,
+  getStackOptions,
   getTagCounts,
   listJobs,
+  saveProfile,
   startCollection,
   type JobFilters,
 } from './api'
@@ -32,6 +35,8 @@ export const queryKeys = {
   tagCounts: (filters: JobFilters) => ['jobs', 'tags', filters] as const,
   job: (id: string) => ['jobs', 'detail', id] as const,
   collect: ['collect'] as const,
+  profile: ['profile'] as const,
+  stackOptions: ['profile', 'stack-options'] as const,
 }
 
 /** What the sidebar counts and the "Para triar" tab shows. */
@@ -148,6 +153,36 @@ export function useUndoTriage() {
       applyTriageToCache(queryClient, jobId, null, null)
     },
     onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.jobs })
+    },
+  })
+}
+
+// --- Profile ---------------------------------------------------------------------
+
+export function useProfile() {
+  return useQuery({
+    queryKey: queryKeys.profile,
+    queryFn: ({ signal }) => getProfile(signal),
+    retry: false, // 404 = no profile yet; retrying won't change that
+  })
+}
+
+export function useStackOptions() {
+  return useQuery({
+    queryKey: queryKeys.stackOptions,
+    queryFn: ({ signal }) => getStackOptions(signal),
+    staleTime: Infinity, // the list only changes when the backend code changes
+  })
+}
+
+export function useSaveProfile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: saveProfile,
+    onSuccess: (profile) => {
+      queryClient.setQueryData(queryKeys.profile, profile)
+      // The pre-filter depends on the profile: every job list and count is stale now
       void queryClient.invalidateQueries({ queryKey: queryKeys.jobs })
     },
   })

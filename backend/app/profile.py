@@ -19,6 +19,7 @@ from sqlmodel import Session
 from app.config import BACKEND_DIR
 from app.db import engine, init_db
 from app.models import PROFILE_ID, Profile, utc_now
+from app.stack import STACK_PATTERNS
 
 DEFAULT_PROFILE_PATH: Path = BACKEND_DIR / "profile.toml"
 
@@ -37,6 +38,17 @@ class ProfileData(BaseModel):
     contract_types: list[ContractType] = []
     salary_expectation: str = ""
     excluded_title_words: list[str] = []
+    preferred_stack: list[str] = []
+    strict_unknown_work_mode: bool = False
+
+    @field_validator("preferred_stack")
+    @classmethod
+    def known_stack_tags(cls, values: list[str]) -> list[str]:
+        """Only tags the detector knows (app/stack.py), so the filter can match them."""
+        unknown = [value for value in values if value not in STACK_PATTERNS]
+        if unknown:
+            raise ValueError(f"unknown stack tags: {', '.join(unknown)}")
+        return list(dict.fromkeys(values))  # dedupe, keeping order
 
     @field_validator("resume")
     @classmethod

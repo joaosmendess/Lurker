@@ -36,6 +36,26 @@ export interface JobPage {
   offset: number
 }
 
+export type WorkMode = 'remote' | 'hybrid' | 'onsite'
+export type ContractType = 'clt' | 'pj'
+
+/** Body of PUT /profile (backend ProfileData) */
+export interface ProfileInput {
+  resume: string
+  work_modes: WorkMode[]
+  accepted_cities: string[]
+  seniority_levels: string[]
+  contract_types: ContractType[]
+  salary_expectation: string
+  excluded_title_words: string[]
+  preferred_stack: string[]
+  strict_unknown_work_mode: boolean
+}
+
+export interface Profile extends ProfileInput {
+  updated_at: string
+}
+
 export interface TagCount {
   tag: string
   count: number
