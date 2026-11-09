@@ -9,10 +9,11 @@ from dataclasses import dataclass, field
 from functools import partial
 
 import httpx
+from sqlalchemy.engine import Engine
 from sqlmodel import Session, col, select
 
 from app.db import engine, init_db
-from app.models import Job, WatchedCompany
+from app.models import CollectRun, Job, WatchedCompany, utc_now
 from app.sources.base import JobSource
 from app.sources.greenhouse import fetch_greenhouse_jobs
 from app.sources.gupy import fetch_gupy_jobs
@@ -119,17 +120,68 @@ def collect(session: Session, client: httpx.Client, sources: dict[str, JobSource
     return CollectResult(fetched=len(jobs), saved=saved, failed_sources=failed_sources)
 
 
+def start_run(db_engine: Engine) -> int:
+    """Record that a run started. Uses its own session, separate from the collection's."""
+    with Session(db_engine) as session:
+        run = CollectRun()
+        session.add(run)
+        session.commit()
+        session.refresh(run)
+        assert run.id is not None
+        return run.id
+
+
+def finish_run(
+    db_engine: Engine, run_id: int, result: CollectResult | None, error: str | None
+) -> None:
+    with Session(db_engine) as session:
+        run = session.get(CollectRun, run_id)
+        if run is None:
+            return
+        run.finished_at = utc_now()
+        if result is not None:
+            run.fetched = result.fetched
+            run.saved = result.saved
+            run.failed_sources = result.failed_sources
+        run.error = error
+        session.add(run)
+        session.commit()
+
+
+def latest_run(session: Session) -> CollectRun | None:
+    statement = select(CollectRun).order_by(col(CollectRun.started_at).desc()).limit(1)
+    return session.exec(statement).first()
+
+
+def run_collection(db_engine: Engine = engine) -> CollectResult:
+    """Full collection with bookkeeping: used by the CLI, the API button and the scheduler.
+
+    The run is recorded in its own sessions so that, even if the collection
+    crashes mid-way (and its session is left in a bad state), the CollectRun
+    row still gets finished_at and the error.
+    """
+    run_id = start_run(db_engine)
+    try:
+        with (
+            httpx.Client(headers={"User-Agent": USER_AGENT}) as client,
+            Session(db_engine) as session,
+        ):
+            result = collect(session, client, build_sources(session))
+    except Exception as error:
+        # Store a short message (never a full traceback with data in it), then re-raise
+        finish_run(db_engine, run_id, result=None, error=f"{type(error).__name__}: {error}"[:500])
+        raise
+    finish_run(db_engine, run_id, result=result, error=None)
+    return result
+
+
 def main() -> None:
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
     init_db()
 
-    with (
-        httpx.Client(headers={"User-Agent": USER_AGENT}) as client,
-        Session(engine) as session,
-    ):
-        result = collect(session, client, build_sources(session))
+    result = run_collection()
 
     logger.info(
         "Done: %d fetched, %d new saved, failed sources: %s",

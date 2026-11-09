@@ -107,6 +107,18 @@ class Application(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=utc_now)
 
 
+class CollectRun(SQLModel, table=True):
+    """One execution of the collection (CLI, API button or, later, the scheduler)."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    started_at: datetime = Field(default_factory=utc_now, index=True)
+    finished_at: datetime | None = None  # None while running (or if the process died)
+    fetched: int = 0
+    saved: int = 0
+    failed_sources: list[str] = Field(default_factory=list, sa_column=json_list_column())
+    error: str | None = None  # set only when the whole run crashed
+
+
 class StatusChange(SQLModel, table=True):
     """One move on the kanban. from_status is None for the creation itself."""
 

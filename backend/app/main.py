@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db import init_db
-from app.routers import applications, companies, jobs, profile
+from app.routers import applications, collect, companies, jobs, profile
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(applications.router)
     app.include_router(profile.router)
     app.include_router(companies.router)
+    app.include_router(collect.router)
 
     @app.get("/health", tags=["meta"])
     def health() -> dict[str, str]:

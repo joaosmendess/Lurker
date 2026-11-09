@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     email_to: str = ""
 
     collect_cron: str = "0 7 * * 1-5"
+    # Minimum gap between "collect now" runs (Remotive allows ~4 requests/day)
+    collect_cooldown_minutes: int = 120
     timezone: str = "America/Maceio"
 
     # The only origin allowed by CORS (the local React dev server)

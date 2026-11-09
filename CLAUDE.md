@@ -200,6 +200,7 @@ GMAIL_USER=
 GMAIL_APP_PASSWORD=
 EMAIL_TO=
 COLLECT_CRON=0 7 * * 1-5
+COLLECT_COOLDOWN_MINUTES=120
 TIMEZONE=America/Maceio
 FRONTEND_ORIGIN=http://localhost:5173
 GUPY_SEARCH_TERMS=desenvolvedor,developer,programador,engenheiro de software,full stack,backend
@@ -300,7 +301,7 @@ Atualize os checkboxes ao concluir cada item.
 - [x] FastAPI com rotas de vagas (listar, filtrar, detalhar)
 - [x] Rotas de candidaturas (criar, mover status, notas)
 - [x] Rotas de perfil e empresas monitoradas
-- [ ] Botão "coletar agora" (endpoint que dispara a coleta)
+- [x] Botão "coletar agora" (endpoint que dispara a coleta)
 
 ### Fase 4 — UI
 - [ ] Setup React + Vite + Tailwind + TanStack Query
