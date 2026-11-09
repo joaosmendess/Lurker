@@ -53,6 +53,15 @@ export function JobDetailPane({ summary, jobId, onTriage, onUndo, onBack }: JobD
             {job.published_at ? `publicada ${relativeAge(date)}` : `coletada ${relativeAge(date)}`}
           </time>
         </p>
+        {job.tags.length > 0 && (
+          <ul aria-label="Stack" className="flex flex-wrap gap-1.5 pt-1">
+            {job.tags.map((tag) => (
+              <li key={tag} className="rounded border border-rule px-1.5 py-0.5 font-mono text-xs text-graphite">
+                {tag}
+              </li>
+            ))}
+          </ul>
+        )}
       </header>
 
       <div className="flex flex-wrap items-center gap-2">

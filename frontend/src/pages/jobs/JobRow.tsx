@@ -6,10 +6,23 @@ import type { JobSummary } from '../../lib/types'
 interface JobRowProps {
   job: JobSummary
   selected: boolean
+  /** Tags chosen in the stack filter: shown first and emphasized */
+  highlightedTags: string[]
   onSelect: (id: string) => void
 }
 
-export function JobRow({ job, selected, onSelect }: JobRowProps) {
+const MAX_ROW_TAGS = 5
+
+/** Highlighted tags first (they explain why the job is in a filtered list), then the rest. */
+function rowTags(tags: string[], highlighted: string[]): { shown: string[]; hidden: number } {
+  const ordered = [
+    ...tags.filter((tag) => highlighted.includes(tag)),
+    ...tags.filter((tag) => !highlighted.includes(tag)),
+  ]
+  return { shown: ordered.slice(0, MAX_ROW_TAGS), hidden: Math.max(ordered.length - MAX_ROW_TAGS, 0) }
+}
+
+export function JobRow({ job, selected, highlightedTags, onSelect }: JobRowProps) {
   const ref = useRef<HTMLButtonElement>(null)
 
   // Keyboard navigation (J/K) keeps the selected row visible
@@ -18,6 +31,7 @@ export function JobRow({ job, selected, onSelect }: JobRowProps) {
   }, [selected])
 
   const date = jobDate(job)
+  const tags = rowTags(job.tags, highlightedTags)
 
   return (
     <li>
@@ -37,6 +51,19 @@ export function JobRow({ job, selected, onSelect }: JobRowProps) {
           <span className="block truncate text-sm text-graphite">
             {job.company} · {workModeLabel(job)} · {sourceLabel(job.source)}
           </span>
+          {tags.shown.length > 0 && (
+            <span className="mt-1 block truncate font-mono text-xs text-graphite">
+              {tags.shown.map((tag, index) => (
+                <span key={tag}>
+                  {index > 0 && ' · '}
+                  <span className={highlightedTags.includes(tag) ? 'font-semibold text-ink' : undefined}>
+                    {tag}
+                  </span>
+                </span>
+              ))}
+              {tags.hidden > 0 && ` +${tags.hidden}`}
+            </span>
+          )}
         </span>
         <span className="flex shrink-0 flex-col items-end gap-1">
           <time dateTime={date} title={formatDateTime(date)} className="font-mono text-xs text-graphite">

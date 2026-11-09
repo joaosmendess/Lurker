@@ -20,6 +20,7 @@ export interface JobSummary {
   published_at: string | null
   collected_at: string
   description_preview: string
+  tags: string[]
   application_id: number | null
   application_status: ApplicationStatus | null
 }
@@ -33,6 +34,11 @@ export interface JobPage {
   total: number
   limit: number
   offset: number
+}
+
+export interface TagCount {
+  tag: string
+  count: number
 }
 
 export interface ApplicationRead {

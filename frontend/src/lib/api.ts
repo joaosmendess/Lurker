@@ -6,6 +6,7 @@ import type {
   CollectStatus,
   JobDetail,
   JobPage,
+  TagCount,
 } from './types'
 
 const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
@@ -53,16 +54,20 @@ export interface JobFilters {
   q?: string
   source?: string
   remote?: boolean
+  /** Jobs with ANY of these stack tags */
+  stack?: string[]
 }
 
-function toSearchParams(filters: JobFilters, limit: number, offset: number): string {
-  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+function toSearchParams(filters: JobFilters): URLSearchParams {
+  const params = new URLSearchParams()
   if (filters.untriaged) params.set('untriaged', 'true')
   if (filters.prefiltered) params.set('prefiltered', 'true')
   if (filters.q) params.set('q', filters.q)
   if (filters.source) params.set('source', filters.source)
   if (filters.remote !== undefined) params.set('remote', String(filters.remote))
-  return params.toString()
+  // Repeated key: ?stack=React&stack=.NET (URLSearchParams encodes "#" in "C#")
+  for (const tag of filters.stack ?? []) params.append('stack', tag)
+  return params
 }
 
 export function listJobs(
@@ -71,7 +76,14 @@ export function listJobs(
   offset: number,
   signal?: AbortSignal,
 ): Promise<JobPage> {
-  return apiRequest<JobPage>(`/jobs?${toSearchParams(filters, limit, offset)}`, { signal })
+  const params = toSearchParams(filters)
+  params.set('limit', String(limit))
+  params.set('offset', String(offset))
+  return apiRequest<JobPage>(`/jobs?${params}`, { signal })
+}
+
+export function getTagCounts(filters: JobFilters, signal?: AbortSignal): Promise<TagCount[]> {
+  return apiRequest<TagCount[]>(`/jobs/tags?${toSearchParams(filters)}`, { signal })
 }
 
 export function getJob(id: string, signal?: AbortSignal): Promise<JobDetail> {

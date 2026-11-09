@@ -242,6 +242,10 @@ python -m app.companies remove greenhouse <slug>
 python -m app.profile import
 python -m app.profile show
 
+# manutenção: reaplicar regras às vagas já salvas (idempotentes)
+python -m app.descriptions   # limpeza/organização das descrições
+python -m app.stack          # tags de stack
+
 # subir a API (docs em http://localhost:8000/docs)
 uvicorn app.main:app --reload
 
@@ -314,7 +318,7 @@ Atualize os checkboxes ao concluir cada item.
 ### Fase 2 — Mais fontes e IA
 - [x] Fontes Greenhouse e Lever + `WatchedCompany`
 - [x] Fonte GitHub (repositórios de vagas da comunidade: backend-br, frontendbr...)
-- [ ] Tags de stack detectadas em cada vaga (filtro de visualização)
+- [x] Tags de stack detectadas em cada vaga (filtro de visualização)
 - [ ] Fontes internacionais remotas (Remote OK, Himalayas...) — opcional
 - [x] `Profile` com currículo e preferências
 - [x] Pré-filtro

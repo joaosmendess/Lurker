@@ -1,8 +1,11 @@
-"""Job routes: list (with filters and pagination) and detail."""
+"""Job routes: list (with filters and pagination), stack tag counts and detail."""
 
+from collections import Counter
+from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import String, cast
 from sqlmodel import Session, col, func, or_, select
 from sqlmodel.sql.expression import Select
 
@@ -10,7 +13,7 @@ from app.db import get_session
 from app.filters import filter_jobs
 from app.models import Application, Job
 from app.profile import get_profile
-from app.schemas import JobDetail, JobPage, to_detail, to_summary
+from app.schemas import JobDetail, JobPage, TagCount, to_detail, to_summary
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -22,38 +25,17 @@ SessionDep = Annotated[Session, Depends(get_session)]
 type JobRow = tuple[Job, Application | None]
 
 
-def build_jobs_query(
-    source: str | None, remote: bool | None, search: str | None, untriaged: bool
-) -> Select[JobRow]:
-    """SELECT jobs + their application (LEFT JOIN) with the optional filters, newest first."""
-    # outerjoin = LEFT JOIN: jobs without an application come back with None
-    statement = select(Job, Application).outerjoin(
-        Application, col(Application.job_id) == col(Job.id)
-    )
-    if source is not None:
-        statement = statement.where(Job.source == source)
-    if remote is not None:
-        statement = statement.where(Job.remote == remote)
-    if search:
-        pattern = f"%{search.strip()}%"
-        statement = statement.where(
-            or_(col(Job.title).ilike(pattern), col(Job.company).ilike(pattern))
-        )
-    if untriaged:
-        statement = statement.where(col(Application.id).is_(None))
-    # Jobs without a publish date go last; id breaks ties so pages are stable
-    return statement.order_by(
-        col(Job.published_at).desc().nulls_last(),
-        col(Job.collected_at).desc(),
-        col(Job.id),
-    )
+@dataclass(frozen=True)
+class JobFilters:
+    source: str | None
+    remote: bool | None
+    search: str | None
+    prefiltered: bool
+    untriaged: bool
+    stack: list[str]
 
 
-# Sync "def" (not "async def") on purpose: the SQLModel session is blocking,
-# and FastAPI runs sync routes in a thread pool so they don't block each other.
-@router.get("", response_model=JobPage)
-def list_jobs(
-    session: SessionDep,
+def job_filters(
     source: str | None = None,
     remote: bool | None = None,
     q: Annotated[str | None, Query(max_length=100, description="search in title/company")] = None,
@@ -63,23 +45,86 @@ def list_jobs(
     untriaged: Annotated[
         bool, Query(description="only jobs without an application (not triaged yet)")
     ] = False,
+    stack: Annotated[
+        list[str] | None,
+        Query(description="repeatable: ?stack=React&stack=.NET (jobs with ANY of them)"),
+    ] = None,
+) -> JobFilters:
+    """Query-string filters shared by several routes. Used as a dependency, so each
+    route declares one parameter instead of repeating six (like a [FromQuery] model)."""
+    return JobFilters(source, remote, q, prefiltered, untriaged, stack or [])
+
+
+FiltersDep = Annotated[JobFilters, Depends(job_filters)]
+
+
+def like_escape(value: str) -> str:
+    """Make % and _ literal inside a LIKE pattern."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def build_jobs_query(filters: JobFilters) -> Select[JobRow]:
+    """SELECT jobs + their application (LEFT JOIN) with the SQL filters, newest first."""
+    # outerjoin = LEFT JOIN: jobs without an application come back with None
+    statement = select(Job, Application).outerjoin(
+        Application, col(Application.job_id) == col(Job.id)
+    )
+    if filters.source is not None:
+        statement = statement.where(Job.source == filters.source)
+    if filters.remote is not None:
+        statement = statement.where(Job.remote == filters.remote)
+    if filters.search:
+        pattern = f"%{like_escape(filters.search.strip())}%"
+        statement = statement.where(
+            or_(
+                col(Job.title).ilike(pattern, escape="\\"),
+                col(Job.company).ilike(pattern, escape="\\"),
+            )
+        )
+    if filters.untriaged:
+        statement = statement.where(col(Application.id).is_(None))
+    if filters.stack:
+        # tags is stored as JSON text like ["React", ".NET"]; matching the quoted
+        # tag keeps "React" from also matching "React Native"
+        tags_text = cast(Job.tags, String)
+        statement = statement.where(
+            or_(*(tags_text.like(f'%"{like_escape(tag)}"%', escape="\\") for tag in filters.stack))
+        )
+    # Jobs without a publish date go last; id breaks ties so pages are stable
+    return statement.order_by(
+        col(Job.published_at).desc().nulls_last(),
+        col(Job.collected_at).desc(),
+        col(Job.id),
+    )
+
+
+def apply_profile_filter(session: Session, rows: list[JobRow]) -> list[JobRow]:
+    """Keep the rows whose job passes the profile pre-filter (Python code, not SQL)."""
+    profile = get_profile(session)
+    if profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="No profile yet. Run: python -m app.profile import",
+        )
+    passed_ids = {job.id for job in filter_jobs([job for job, _ in rows], profile).passed}
+    return [row for row in rows if row[0].id in passed_ids]
+
+
+# Sync "def" (not "async def") on purpose: the SQLModel session is blocking,
+# and FastAPI runs sync routes in a thread pool so they don't block each other.
+@router.get("", response_model=JobPage)
+def list_jobs(
+    session: SessionDep,
+    filters: FiltersDep,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> JobPage:
-    statement = build_jobs_query(source, remote, q, untriaged)
+    statement = build_jobs_query(filters)
 
-    if prefiltered:
-        profile = get_profile(session)
-        if profile is None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="No profile yet. Run: python -m app.profile import",
-            )
-        # The pre-filter is Python code, so it runs after the SQL query and the
-        # page is cut in memory. Fine for a few thousand jobs.
-        rows: list[JobRow] = list(session.exec(statement).all())
-        passed_ids = {job.id for job in filter_jobs([job for job, _ in rows], profile).passed}
-        matching = [row for row in rows if row[0].id in passed_ids]
+    if filters.prefiltered:
+        # The pre-filter runs after the SQL query and the page is cut in memory.
+        # Fine for a few thousand jobs.
+        matching = apply_profile_filter(session, list(session.exec(statement).all()))
         total = len(matching)
         page = matching[offset : offset + limit]  # slicing: like LINQ Skip/Take
     else:
@@ -93,6 +138,24 @@ def list_jobs(
         limit=limit,
         offset=offset,
     )
+
+
+# Declared before "/{job_id}": otherwise "tags" would be taken as a job id
+@router.get("/tags", response_model=list[TagCount])
+def count_tags(session: SessionDep, filters: FiltersDep) -> list[TagCount]:
+    """How many jobs have each stack tag, under the same filters as the list.
+
+    The stack filter itself is ignored here, so every chip keeps its count and
+    the user can add a second stack to the selection.
+    """
+    unfiltered_by_stack = JobFilters(
+        filters.source, filters.remote, filters.search, filters.prefiltered, filters.untriaged, []
+    )
+    rows = list(session.exec(build_jobs_query(unfiltered_by_stack)).all())
+    if filters.prefiltered:
+        rows = apply_profile_filter(session, rows)
+    counts = Counter(tag for job, _ in rows for tag in job.tags)
+    return [TagCount(tag=tag, count=count) for tag, count in counts.most_common()]
 
 
 @router.get("/{job_id}", response_model=JobDetail)

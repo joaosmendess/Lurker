@@ -16,6 +16,7 @@ import {
   deleteApplication,
   getCollectStatus,
   getJob,
+  getTagCounts,
   listJobs,
   startCollection,
   type JobFilters,
@@ -28,6 +29,7 @@ export const queryKeys = {
   jobs: ['jobs'] as const,
   jobList: (filters: JobFilters) => ['jobs', 'list', filters] as const,
   jobCount: (filters: JobFilters) => ['jobs', 'count', filters] as const,
+  tagCounts: (filters: JobFilters) => ['jobs', 'tags', filters] as const,
   job: (id: string) => ['jobs', 'detail', id] as const,
   collect: ['collect'] as const,
 }
@@ -52,6 +54,17 @@ export function useJobCount(filters: JobFilters) {
     queryKey: queryKeys.jobCount(filters),
     queryFn: ({ signal }) => listJobs(filters, 1, 0, signal),
     select: (page) => page.total,
+  })
+}
+
+/** Stack chip counts. The stack selection itself is left out of the key and the
+ * request, so chips keep their counts while you pick several. */
+export function useTagCounts(filters: JobFilters) {
+  // stack: undefined is dropped by the query-key hash and by toSearchParams
+  const withoutStack: JobFilters = { ...filters, stack: undefined }
+  return useQuery({
+    queryKey: queryKeys.tagCounts(withoutStack),
+    queryFn: ({ signal }) => getTagCounts(withoutStack, signal),
   })
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 
 export type JobTab = 'triar' | 'todas'
 export type WorkModeFilter = '' | 'remoto' | 'presencial'
@@ -11,6 +11,8 @@ interface JobToolbarProps {
   total: number | undefined
   searchRef: RefObject<HTMLInputElement | null>
   onChange: (updates: Record<string, string>) => void
+  /** Extra filter row rendered at the bottom (the stack chips) */
+  extra?: ReactNode
 }
 
 const TABS: { value: JobTab; label: string }[] = [
@@ -20,7 +22,16 @@ const TABS: { value: JobTab; label: string }[] = [
 
 const SEARCH_DELAY_MS = 300
 
-export function JobToolbar({ tab, query, source, workMode, total, searchRef, onChange }: JobToolbarProps) {
+export function JobToolbar({
+  tab,
+  query,
+  source,
+  workMode,
+  total,
+  searchRef,
+  onChange,
+  extra,
+}: JobToolbarProps) {
   // The input updates instantly; the URL (and the API call) only after a pause in typing
   const [draft, setDraft] = useState(query)
   const lastSent = useRef(query)
@@ -85,6 +96,7 @@ export function JobToolbar({ tab, query, source, workMode, total, searchRef, onC
             <option value="remotive">Remotive</option>
             <option value="greenhouse">Greenhouse</option>
             <option value="lever">Lever</option>
+            <option value="github">GitHub (comunidade)</option>
           </select>
         </label>
         <label className="min-w-0 flex-1">
@@ -100,6 +112,7 @@ export function JobToolbar({ tab, query, source, workMode, total, searchRef, onC
           </select>
         </label>
       </div>
+      {extra}
     </div>
   )
 }

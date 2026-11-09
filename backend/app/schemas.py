@@ -26,6 +26,7 @@ class JobSummary(BaseModel):
     published_at: datetime | None
     collected_at: datetime
     description_preview: str
+    tags: list[str] = []
     # The application for this job, if I already triaged it (None = not triaged yet)
     application_id: int | None = None
     application_status: ApplicationStatus | None = None
@@ -44,6 +45,11 @@ class JobPage(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class TagCount(BaseModel):
+    tag: str
+    count: int
 
 
 def make_preview(description: str) -> str:

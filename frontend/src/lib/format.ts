@@ -17,6 +17,7 @@ const SOURCE_LABELS: Record<string, string> = {
   remotive: 'Remotive',
   greenhouse: 'Greenhouse',
   lever: 'Lever',
+  github: 'GitHub',
 }
 
 export function sourceLabel(source: string): string {

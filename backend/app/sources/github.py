@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from app.models import Job
 from app.sources.base import REQUEST_TIMEOUT_SECONDS, as_utc, tidy_lines
+from app.stack import detect_stack
 
 SOURCE_NAME = "github"
 ISSUES_URL = "https://api.github.com/repos/{repo}/issues"
@@ -110,6 +111,9 @@ def to_job(issue: GitHubIssue, *, repo: str, published_at: datetime) -> Job:
         remote=remote_from_labels(labels, tag),
         description=markdown_to_text(issue.body or ""),
         published_at=published_at,
+        # Labels like "Node.js" or "Apache Kafka" go through the same detector,
+        # so they become the same canonical tags as the text ("Node.js", "Kafka")
+        tags=detect_stack(*(label.name for label in issue.labels)),
     )
 
 

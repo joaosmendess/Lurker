@@ -21,6 +21,7 @@ from app.sources.greenhouse import fetch_greenhouse_jobs
 from app.sources.gupy import fetch_gupy_jobs
 from app.sources.lever import fetch_lever_jobs
 from app.sources.remotive import fetch_remotive_jobs
+from app.stack import tag_job
 
 logger = logging.getLogger(__name__)
 
@@ -125,8 +126,10 @@ def save_new_jobs(session: Session, jobs: list[Job]) -> int:
 
 
 def collect(session: Session, client: httpx.Client, sources: dict[str, JobSource]) -> CollectResult:
-    """Run the sources and save what's new."""
+    """Run the sources, tag the stack of each job and save what's new."""
     jobs, failed_sources = run_sources(client, sources)
+    for job in jobs:
+        tag_job(job)  # done here, once, so no source has to remember it
     saved = save_new_jobs(session, jobs)
     return CollectResult(fetched=len(jobs), saved=saved, failed_sources=failed_sources)
 

@@ -12,6 +12,16 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
+# Defined before the classes: a class body runs when the module loads, so any
+# function it calls must already exist at that point.
+def json_list_column() -> Column:
+    """A column that stores a Python list as JSON text (SQLite has no array type).
+
+    Each field needs its own Column object, hence a function instead of a constant.
+    """
+    return Column(JSON, nullable=False)
+
+
 class Job(SQLModel, table=True):
     """A job posting collected from a source, already normalized."""
 
@@ -30,6 +40,9 @@ class Job(SQLModel, table=True):
     # default_factory runs on every new instance; a plain default would be
     # evaluated only once, when the class is defined
     collected_at: datetime = Field(default_factory=utc_now)
+    # Technologies detected in the job (app/stack.py), e.g. ["React", ".NET"].
+    # Only a view filter: no job is ever discarded because of its stack.
+    tags: list[str] = Field(default_factory=list, sa_column=json_list_column())
 
 
 class WatchedCompany(SQLModel, table=True):
@@ -48,14 +61,6 @@ class WatchedCompany(SQLModel, table=True):
 
 
 PROFILE_ID = 1  # the profile is a single row; this is its fixed id
-
-
-def json_list_column() -> Column:
-    """A column that stores a Python list as JSON text (SQLite has no array type).
-
-    Each field needs its own Column object, hence a function instead of a constant.
-    """
-    return Column(JSON, nullable=False)
 
 
 class Profile(SQLModel, table=True):

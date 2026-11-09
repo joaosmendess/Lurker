@@ -4,23 +4,34 @@ import { useSearchParams } from 'react-router'
 import { useToast } from '../../components/toast-context'
 import type { JobFilters } from '../../lib/api'
 import { useHotkeys } from '../../lib/useHotkeys'
-import { useJobList, useTriage, useUndoTriage } from '../../lib/queries'
+import { useJobList, useTagCounts, useTriage, useUndoTriage } from '../../lib/queries'
 import type { ApplicationStatus, JobSummary } from '../../lib/types'
 import { CollectPanel } from '../../layout/CollectPanel'
 import { JobDetailPane } from './JobDetailPane'
 import { JobRow } from './JobRow'
 import { JobToolbar, type JobTab, type WorkModeFilter } from './JobToolbar'
+import { StackFilter } from './StackFilter'
 import { Kbd } from '../../components/Kbd'
 
-function toFilters(tab: JobTab, query: string, source: string, workMode: WorkModeFilter): JobFilters {
+function toFilters(
+  tab: JobTab,
+  query: string,
+  source: string,
+  workMode: WorkModeFilter,
+  stack: string[],
+): JobFilters {
   return {
     // "Para triar" = passes my profile's pre-filter and has no application yet
     ...(tab === 'triar' ? { untriaged: true, prefiltered: true } : {}),
     ...(query ? { q: query } : {}),
     ...(source ? { source } : {}),
     ...(workMode ? { remote: workMode === 'remoto' } : {}),
+    ...(stack.length ? { stack } : {}),
   }
 }
+
+// Stacks live in the URL as one comma-separated param: ?stack=.NET,React
+const STACK_SEPARATOR = ','
 
 const TRIAGE_MESSAGES: Record<'interested' | 'discarded', string> = {
   interested: 'Marcada como interesse',
@@ -34,10 +45,16 @@ export function JobsPage() {
   const query = params.get('q') ?? ''
   const source = params.get('fonte') ?? ''
   const workMode = (params.get('modo') ?? '') as WorkModeFilter
+  const stackParam = params.get('stack') ?? ''
   const selectedId = params.get('vaga')
 
-  const filters = useMemo(() => toFilters(tab, query, source, workMode), [tab, query, source, workMode])
+  const stack = useMemo(() => stackParam.split(STACK_SEPARATOR).filter(Boolean), [stackParam])
+  const filters = useMemo(
+    () => toFilters(tab, query, source, workMode, stack),
+    [tab, query, source, workMode, stack],
+  )
   const list = useJobList(filters)
+  const tagCounts = useTagCounts(filters)
   const jobs = useMemo(() => list.data?.pages.flatMap((page) => page.items) ?? [], [list.data])
   const total = list.data?.pages.at(-1)?.total
 
@@ -126,7 +143,7 @@ export function JobsPage() {
     escape: () => select(null),
   })
 
-  const hasFilters = Boolean(query || source || workMode)
+  const hasFilters = Boolean(query || source || workMode || stack.length)
 
   return (
     <div className="flex h-full">
@@ -143,6 +160,13 @@ export function JobsPage() {
           total={total}
           searchRef={searchRef}
           onChange={updateParams}
+          extra={
+            <StackFilter
+              counts={tagCounts.data}
+              selected={stack}
+              onChange={(next) => updateParams({ stack: next.join(STACK_SEPARATOR), vaga: '' })}
+            />
+          }
         />
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -162,7 +186,7 @@ export function JobsPage() {
                   <p className="font-medium">Nenhuma vaga com esses filtros.</p>
                   <button
                     type="button"
-                    onClick={() => updateParams({ q: '', fonte: '', modo: '' })}
+                    onClick={() => updateParams({ q: '', fonte: '', modo: '', stack: '' })}
                     className="text-sm text-signal underline-offset-2 hover:underline"
                   >
                     Limpar filtros
@@ -190,6 +214,7 @@ export function JobsPage() {
                   key={job.id}
                   job={job}
                   selected={job.id === selectedId}
+                  highlightedTags={stack}
                   onSelect={(id) => select(id, true)}
                 />
               ))}
