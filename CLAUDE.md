@@ -269,7 +269,7 @@ Atualize os checkboxes ao concluir cada item.
 - [x] Estrutura do backend, venv, requirements, .gitignore
 - [x] Config (pydantic-settings) e banco (SQLModel + SQLite)
 - [x] Modelo `Job`
-- [ ] Fonte Remotive
+- [x] Fonte Remotive
 - [ ] Fonte Gupy
 - [ ] `collect.py` salvando sem duplicar
 - [ ] Testes das fontes

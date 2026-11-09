@@ -1,0 +1,31 @@
+{
+  "00-warning": "Remotive main domain moved to remotive.com",
+  "0-legal-notice": "Legal warning (shortened for tests)",
+  "job-count": 2,
+  "total-job-count": 2,
+  "jobs": [
+    {
+      "id": 1001,
+      "url": "https://remotive.com/remote-jobs/software-dev/senior-backend-engineer-1001",
+      "title": "  Senior Backend Engineer ",
+      "company_name": "Acme Corp",
+      "company_logo": "https://remotive.com/job/1001/logo",
+      "category": "Software Development",
+      "tags": ["python", "postgresql"],
+      "job_type": "full_time",
+      "publication_date": "2026-11-07T01:10:55",
+      "candidate_required_location": "Worldwide",
+      "salary": "",
+      "description": "<p class=\"MsoNormal\" style=\"margin: 0\">We build tools for R&amp;D teams.</p><script>track()</script><ul><li><p>5+ years with Python</p></li><li>APIs   and\tSQL</li></ul>",
+      "company_logo_url": "https://remotive.com/job/1001/logo"
+    },
+    {
+      "id": 1002,
+      "url": "https://remotive.com/remote-jobs/software-dev/broken-1002",
+      "company_name": "No Title Inc",
+      "publication_date": "2026-11-06T08:51:01",
+      "candidate_required_location": "USA",
+      "description": "<p>Missing title on purpose</p>"
+    }
+  ]
+}
