@@ -12,9 +12,11 @@ import httpx
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, col, select
 
+from app.config import get_settings
 from app.db import engine, init_db
 from app.models import CollectRun, Job, WatchedCompany, utc_now
 from app.sources.base import JobSource
+from app.sources.github import fetch_github_jobs
 from app.sources.greenhouse import fetch_greenhouse_jobs
 from app.sources.gupy import fetch_gupy_jobs
 from app.sources.lever import fetch_lever_jobs
@@ -48,13 +50,22 @@ class CollectResult:
     failed_sources: list[str] = field(default_factory=list)
 
 
-def build_sources(session: Session) -> dict[str, JobSource]:
-    """Static sources plus one source per active watched company.
+def github_sources() -> dict[str, JobSource]:
+    """One source per configured community repo, e.g. "github:backend-br/vagas"."""
+    return {
+        f"github:{repo}": partial(fetch_github_jobs, repo=repo)
+        for repo in get_settings().github_job_repos
+    }
 
-    Each company is its own source ("greenhouse:gitlab"), so a wrong slug only
-    fails that company, and the summary says exactly which one.
+
+def build_sources(session: Session) -> dict[str, JobSource]:
+    """Static sources, the GitHub repos and one source per active watched company.
+
+    Each company/repo is its own source ("greenhouse:gitlab"), so a wrong slug only
+    fails that one, and the summary says exactly which.
     """
     sources: dict[str, JobSource] = dict(STATIC_SOURCES)  # copy: never mutate the module dict
+    sources.update(github_sources())
 
     companies = session.exec(select(WatchedCompany).where(col(WatchedCompany.active).is_(True)))
     for company in companies:

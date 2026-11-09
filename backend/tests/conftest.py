@@ -26,6 +26,13 @@ def make_job(job_id: str, title: str = "Desenvolvedor Pleno", **fields: object) 
     return Job.model_validate(values)
 
 
+@pytest.fixture(autouse=True)
+def no_configured_network_sources(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Sources built from settings (GitHub repos) would hit the network in any test
+    that builds the real source list. Tests never call real sites, so they're off."""
+    monkeypatch.setattr("app.collect.github_sources", lambda: {})
+
+
 @pytest.fixture
 def engine() -> Engine:
     """Empty in-memory database. A test module can override it with seeded data."""

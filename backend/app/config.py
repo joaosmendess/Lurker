@@ -53,7 +53,20 @@ class Settings(BaseSettings):
         "backend",
     ]
 
-    @field_validator("gupy_search_terms", mode="before")
+    # Community job repositories on GitHub ("owner/name"), one source each
+    github_job_repos: Annotated[list[str], NoDecode] = [
+        "backend-br/vagas",
+        "frontendbr/vagas",
+        "soujava/vagas-java",
+        "CocoaHeadsBrasil/vagas",
+        "react-brasil/vagas",
+        "phpdevbr/vagas",
+        "androiddevbr/vagas",
+        "vuejs-br/vagas",
+        "qa-brasil/vagas",
+    ]
+
+    @field_validator("gupy_search_terms", "github_job_repos", mode="before")
     @classmethod
     def split_comma_separated(cls, value: Any) -> Any:
         """Accept "a, b,c" in .env and turn it into ["a", "b", "c"]."""

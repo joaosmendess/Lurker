@@ -153,6 +153,10 @@ Endpoints:
   Termos de busca em `GUPY_SEARCH_TERMS`.
 - **Greenhouse:** `https://boards-api.greenhouse.io/v1/boards/<slug>/jobs?content=true`
 - **Lever:** `https://api.lever.co/v0/postings/<slug>?mode=json`
+- **GitHub (comunidade):** `https://api.github.com/repos/<owner>/<repo>/issues?state=open`
+  (API oficial; cada vaga é uma issue; título `[Local/Modalidade] Cargo - Empresa`,
+  labels com stack/nível/modalidade, corpo em Markdown). Ignorar issues com mais
+  de 90 dias. Repositórios em `GITHUB_JOB_REPOS`. Limite sem login: 60 req/h.
 
 ### Limites éticos e de termos de uso (obrigatório)
 - **Não** automatizar login nem candidaturas em LinkedIn, Gupy, Indeed ou
@@ -170,8 +174,10 @@ Endpoints:
 
 - Modelo configurável via `.env` (`CLAUDE_MODEL`), padrão `claude-haiku-5-5`
   (barato e suficiente para essa tarefa).
-- **Não filtrar por stack.** Quero vagas de qualquer stack; a IA avalia o fit
-  pela minha experiência geral, senioridade, modalidade e requisitos.
+- **Não descartar por stack.** Quero vagas de qualquer stack; a IA avalia o fit
+  pela minha experiência geral, senioridade, modalidade e requisitos. A stack
+  detectada em cada vaga serve só como **filtro de visualização** na UI (eu
+  ligo/desligo); nenhuma vaga é excluída do banco ou da IA por causa dela.
 - O pré-filtro (`filters.py`) roda **antes** da IA para economizar: descarta
   por título usando `Profile.excluded_title_words` (estágio, staff, principal,
   gerente etc.; júnior e sênior **não** são descartados, a IA avalia) e por
@@ -204,6 +210,7 @@ COLLECT_COOLDOWN_MINUTES=120
 TIMEZONE=America/Maceio
 FRONTEND_ORIGIN=http://localhost:5173
 GUPY_SEARCH_TERMS=desenvolvedor,developer,programador,engenheiro de software,full stack,backend
+GITHUB_JOB_REPOS=backend-br/vagas,frontendbr/vagas,soujava/vagas-java,...
 ```
 
 Toda configuração passa por `app/config.py` (pydantic-settings). Nada de
@@ -306,6 +313,9 @@ Atualize os checkboxes ao concluir cada item.
 
 ### Fase 2 — Mais fontes e IA
 - [x] Fontes Greenhouse e Lever + `WatchedCompany`
+- [x] Fonte GitHub (repositórios de vagas da comunidade: backend-br, frontendbr...)
+- [ ] Tags de stack detectadas em cada vaga (filtro de visualização)
+- [ ] Fontes internacionais remotas (Remote OK, Himalayas...) — opcional
 - [x] `Profile` com currículo e preferências
 - [x] Pré-filtro
 - [ ] Pontuação com Claude + `JobAnalysis`
@@ -321,7 +331,8 @@ Atualize os checkboxes ao concluir cada item.
 - [ ] Lista de vagas com nota, filtros e ações (interesse/descartar)
 - [ ] Detalhe da vaga com análise e pitch (botão copiar)
 - [ ] Kanban de candidaturas com arrastar e soltar
-- [ ] Tela de perfil e empresas monitoradas
+- [ ] Tela de perfil e empresas monitoradas (inclui o "Foco": modalidade,
+  cidades, palavras de título e stacks preferidas, editáveis pela UI)
 
 ### Fase 5 — Automação
 - [ ] Coleta diária com APScheduler
