@@ -1,6 +1,7 @@
 """Database tables (SQLModel). Each class with table=True becomes a table."""
 
 from datetime import UTC, datetime
+from enum import StrEnum
 
 from sqlalchemy import JSON, Column, UniqueConstraint
 from sqlmodel import Field, SQLModel
@@ -79,3 +80,38 @@ class Profile(SQLModel, table=True):
     # Jobs whose title contains any of these words are dropped before the AI
     excluded_title_words: list[str] = Field(default_factory=list, sa_column=json_list_column())
     updated_at: datetime = Field(default_factory=utc_now)
+
+
+# StrEnum members ARE strings: ApplicationStatus.APPLIED == "applied" is True,
+# so they serialize to JSON and compare with plain strings without conversion.
+class ApplicationStatus(StrEnum):
+    INTERESTED = "interested"
+    APPLIED = "applied"
+    IN_PROCESS = "in_process"
+    INTERVIEW = "interview"
+    OFFER = "offer"
+    REJECTED = "rejected"
+    DISCARDED = "discarded"
+
+
+class Application(SQLModel, table=True):
+    """My application to a job (1:1 with Job), shown as a card on the kanban."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    # unique=True enforces the 1:1: a job can have at most one application
+    job_id: str = Field(foreign_key="job.id", unique=True)
+    # Stored as plain text; the API validates it against ApplicationStatus
+    status: str = ApplicationStatus.INTERESTED
+    notes: str = ""
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+
+class StatusChange(SQLModel, table=True):
+    """One move on the kanban. from_status is None for the creation itself."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    application_id: int = Field(foreign_key="application.id", index=True)
+    from_status: str | None = None
+    to_status: str
+    changed_at: datetime = Field(default_factory=utc_now)
